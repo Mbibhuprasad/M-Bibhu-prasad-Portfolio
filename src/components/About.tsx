@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { animate, motion, useInView } from "framer-motion";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { EXPO, FadeIn, RevealLines, SectionLabel } from "@/components/ui";
-import { useReducedMotion } from "@/lib/hooks";
+import { useIsDesktop, useIsMobile, useReducedMotion } from "@/lib/hooks";
+import { useTheme } from "@/lib/theme";
 
 gsap.registerPlugin(ScrollTrigger);
+
+const IntroScene = dynamic(() => import("@/components/IntroScene"), { ssr: false });
 
 /* ───────── metrics ───────── */
 
@@ -62,153 +66,68 @@ function Metric({ m, i }: { m: (typeof METRICS)[number]; i: number }) {
   );
 }
 
-/* ───────── layered system visual ───────── */
+/* ───────── backdrop ───────── */
 
-function PlateUI() {
+/** Dark-blue field with drifting light, a faint grid, circuit lines and one small orange accent. CSS only. */
+function IntroBackdrop() {
   return (
-    <div className="flex h-full flex-col gap-2.5 p-4">
-      <div className="flex items-center gap-1.5">
-        <span className="size-1.5 rounded-full bg-fg/30" />
-        <span className="size-1.5 rounded-full bg-fg/30" />
-        <span className="size-1.5 rounded-full bg-fg/30" />
-        <span className="ml-3 h-1.5 w-24 rounded-full bg-fg/10" />
-      </div>
-      <div className="grid flex-1 grid-cols-3 gap-2">
-        <div className="col-span-2 rounded-md border border-line bg-white/[0.03] p-2">
-          <svg viewBox="0 0 120 50" className="h-full w-full" preserveAspectRatio="none">
-            <polyline points="0,40 18,34 34,38 52,22 70,26 88,12 104,16 120,6" fill="none" stroke="#22D3EE" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
-          </svg>
-        </div>
-        <div className="flex flex-col gap-2">
-          <div className="flex-1 rounded-md border border-line bg-electric/15" />
-          <div className="flex-1 rounded-md border border-line bg-white/[0.03]" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PlateAPI() {
-  const rows = [
-    ["GET", "/api/patients", "200"],
-    ["POST", "/api/orders", "201"],
-    ["PUT", "/api/inventory", "200"],
-    ["GET", "/api/reports", "200"],
-  ];
-  return (
-    <div className="flex h-full flex-col justify-center gap-2 p-4 font-mono text-[9px] tracking-[0.06em]">
-      {rows.map(([m, p, s]) => (
-        <div key={p} className="flex items-center gap-2 rounded border border-line bg-white/[0.02] px-2 py-1.5">
-          <span className="w-8 text-cyan">{m}</span>
-          <span className="flex-1 text-fg-2">{p}</span>
-          <span className="text-signal">{s}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function PlateDB() {
-  return (
-    <div className="grid h-full grid-cols-4 grid-rows-4 gap-1.5 p-4">
-      {Array.from({ length: 16 }).map((_, i) => (
-        <span
-          key={i}
-          className={`rounded-sm border border-line ${i % 5 === 0 ? "bg-violet/25" : i % 3 === 0 ? "bg-electric/15" : "bg-white/[0.03]"}`}
-        />
-      ))}
-    </div>
-  );
-}
-
-const PLATES = [
-  { key: "db", label: "DATABASE · MONGODB / MYSQL", tint: "rgba(139,92,246,0.10)", border: "rgba(139,92,246,0.35)", body: <PlateDB /> },
-  { key: "api", label: "API · NODE + EXPRESS", tint: "rgba(34,211,238,0.07)", border: "rgba(34,211,238,0.3)", body: <PlateAPI /> },
-  { key: "ui", label: "UI · REACT / NEXT.JS", tint: "rgba(61,123,255,0.10)", border: "rgba(61,123,255,0.4)", body: <PlateUI /> },
-];
-
-function LayerStack() {
-  const wrap = useRef<HTMLDivElement>(null);
-  const stack = useRef<HTMLDivElement>(null);
-  const reduced = useReducedMotion();
-
-  useEffect(() => {
-    const el = stack.current;
-    if (!el || reduced) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        el,
-        { "--gap": "22px", "--rx": "58deg" },
-        {
-          "--gap": "96px",
-          "--rx": "40deg",
-          ease: "none",
-          scrollTrigger: { trigger: wrap.current, start: "top 85%", end: "bottom 30%", scrub: 1 },
-        }
-      );
-    }, wrap);
-    return () => ctx.revert();
-  }, [reduced]);
-
-  const onMove = (e: React.PointerEvent) => {
-    if (reduced || e.pointerType !== "mouse" || !stack.current || !wrap.current) return;
-    const r = wrap.current.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width - 0.5;
-    const y = (e.clientY - r.top) / r.height - 0.5;
-    stack.current.style.setProperty("--tx", `${x * 12}deg`);
-    stack.current.style.setProperty("--ty", `${-y * 10}deg`);
-  };
-  const onLeave = () => {
-    stack.current?.style.setProperty("--tx", "0deg");
-    stack.current?.style.setProperty("--ty", "0deg");
-  };
-
-  return (
-    <div
-      ref={wrap}
-      onPointerMove={onMove}
-      onPointerLeave={onLeave}
-      aria-hidden="true"
-      className="relative flex h-[440px] items-center justify-center [perspective:1400px] md:h-[560px]"
-    >
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      {/* base wash */}
       <div
-        className="pointer-events-none absolute left-1/2 top-1/2 size-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{ background: "radial-gradient(circle, rgba(61,123,255,0.16), rgba(139,92,246,0.05) 45%, transparent 70%)" }}
+        className="absolute inset-0"
+        style={{ background: "linear-gradient(180deg, transparent, rgb(61 123 255 / 0.05) 45%, transparent)" }}
+      />
+      {/* drifting light */}
+      <div
+        className="intro-drift-a absolute -right-[10%] top-[8%] size-[70vw] max-w-[900px] rounded-full blur-3xl lg:size-[56vw]"
+        style={{ background: "radial-gradient(circle, rgb(61 123 255 / 0.16), rgb(139 92 246 / 0.05) 45%, transparent 70%)" }}
       />
       <div
-        ref={stack}
-        className="relative h-[190px] w-[270px] transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] [transform-style:preserve-3d] md:h-[220px] md:w-[320px]"
-        style={
-          {
-            "--gap": "22px",
-            "--rx": "58deg",
-            "--tx": "0deg",
-            "--ty": "0deg",
-            transform: "rotateX(calc(var(--rx) + var(--ty))) rotateZ(calc(-38deg + var(--tx)))",
-          } as React.CSSProperties
-        }
+        className="intro-drift-b absolute bottom-[4%] right-[22%] size-[32vw] max-w-[420px] rounded-full blur-3xl"
+        style={{ background: "radial-gradient(circle, rgb(34 211 238 / 0.08), transparent 70%)" }}
+      />
+      <div
+        className="intro-drift-b absolute right-[14%] top-[30%] size-[14vw] max-w-[200px] rounded-full blur-2xl"
+        style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 70%)" }}
+      />
+      {/* faint grid, strongest on the right */}
+      <div
+        className="absolute inset-0 opacity-70 [mask-image:radial-gradient(ellipse_60%_70%_at_75%_50%,black,transparent)]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgb(61 123 255 / 0.07) 1px, transparent 1px), linear-gradient(90deg, rgb(61 123 255 / 0.07) 1px, transparent 1px)",
+          backgroundSize: "56px 56px",
+        }}
+      />
+      {/* abstract digital lines */}
+      <svg
+        className="absolute inset-y-0 right-0 h-full w-full opacity-80 lg:w-[62%] [mask-image:linear-gradient(to_right,transparent,black_35%)]"
+        viewBox="0 0 800 600"
+        preserveAspectRatio="xMidYMid slice"
+        fill="none"
       >
-        {PLATES.map((p, i) => (
-          <div
-            key={p.key}
-            className="absolute inset-0 rounded-xl backdrop-blur-sm"
-            style={{
-              transform: `translateZ(calc(var(--gap) * ${i - 1}))`,
-              background: `linear-gradient(135deg, ${p.tint}, rgba(10,12,18,0.72))`,
-              border: `1px solid ${p.border}`,
-              boxShadow: "0 30px 60px -30px rgba(0,0,0,0.8)",
-            }}
-          >
-            {p.body}
-            <span className="absolute -bottom-6 left-0 font-mono text-[10px] tracking-[0.14em] text-fg-3">{p.label}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* legend */}
-      <div className="absolute bottom-2 right-0 flex flex-col items-end gap-1.5 font-mono text-[10px] tracking-[0.14em] text-fg-3 md:bottom-6">
-        <span className="text-fg-2">03 LAYERS · ONE SYSTEM</span>
-        <span>UI → API → DATA</span>
+        <g stroke="rgb(61 123 255 / 0.22)" strokeWidth="1" vectorEffect="non-scaling-stroke">
+          <path d="M0 150 H280 L340 210 H800" />
+          <path d="M0 300 H180 L240 240 H520 L580 300 H800" />
+          <path d="M0 450 H360 L420 390 H800" />
+          <path d="M520 0 V120 L580 180 V600" />
+        </g>
+        <g strokeWidth="1.4" strokeDasharray="3 37" strokeLinecap="round" vectorEffect="non-scaling-stroke">
+          <path className="intro-line" d="M0 150 H280 L340 210 H800" stroke="rgb(34 211 238 / 0.55)" />
+          <path className="intro-line" d="M0 450 H360 L420 390 H800" stroke="rgb(61 123 255 / 0.6)" style={{ animationDuration: "4.5s" }} />
+          <path className="intro-line" d="M520 0 V120 L580 180 V600" stroke="var(--color-accent)" strokeOpacity="0.55" style={{ animationDuration: "6s" }} />
+        </g>
+        <g fill="rgb(61 123 255 / 0.55)">
+          <circle cx="340" cy="210" r="2.5" />
+          <circle cx="240" cy="240" r="2.5" />
+          <circle cx="580" cy="300" r="2.5" />
+          <circle cx="420" cy="390" r="2.5" />
+        </g>
+        <circle cx="580" cy="180" r="3" fill="var(--color-accent)" fillOpacity="0.8" />
+      </svg>
+      {/* slow scanning light along the top rule */}
+      <div className="absolute inset-x-0 top-0 h-px overflow-hidden">
+        <span className="intro-scan absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-electric/60 to-transparent" />
       </div>
     </div>
   );
@@ -217,15 +136,41 @@ function LayerStack() {
 /* ───────── section ───────── */
 
 export default function About() {
+  const isDesktop = useIsDesktop();
+  const isMobile = useIsMobile();
+  const reduced = useReducedMotion();
+  const theme = useTheme();
+  const section = useRef<HTMLElement>(null);
+  const progress = useRef(0);
+
+  // scroll progress through the section feeds the 3D system core
+  useEffect(() => {
+    const st = ScrollTrigger.create({
+      trigger: section.current,
+      start: "top bottom",
+      end: "bottom top",
+      onUpdate: (s) => {
+        progress.current = s.progress;
+      },
+    });
+    return () => st.kill();
+  }, []);
+
   return (
-    <section id="about" aria-label="About" className="relative overflow-hidden py-28 md:py-40">
-      <div className="container-x grid grid-cols-1 items-center gap-16 lg:grid-cols-12 lg:gap-8">
+    <section
+      ref={section}
+      id="about"
+      aria-label="About"
+      className="relative z-20 overflow-hidden bg-void py-20 shadow-[0_-40px_80px_-40px_rgb(0_0_0/0.8)] md:py-28 light:shadow-[0_-40px_80px_-40px_rgb(15_23_42/0.18)]"
+    >
+      <IntroBackdrop />
+      <div className="container-x relative grid grid-cols-1 items-center gap-16 lg:grid-cols-12 lg:gap-8">
         <div className="lg:col-span-7">
           <SectionLabel index="02">INTRODUCTION</SectionLabel>
 
           <RevealLines
             as="h2"
-            className="mt-8 font-display text-[clamp(44px,8vw,112px)] font-semibold leading-[0.92] tracking-[-0.04em]"
+            className="mt-8 font-display text-[clamp(40px,6.6vw,92px)] font-semibold leading-[0.92] tracking-[-0.04em]"
             lines={[
               "I BUILD",
               <>
@@ -253,9 +198,15 @@ export default function About() {
           </div>
         </div>
 
-        <div className="lg:col-span-5">
-          <LayerStack />
-        </div>
+        {/* 3D system core — reacts to scroll */}
+        <FadeIn delay={0.2} className="relative h-[300px] sm:h-[380px] lg:col-span-5 lg:h-[560px]">
+          <IntroScene
+            progress={progress}
+            layout={isDesktop ? "desktop" : isMobile ? "mobile" : "tablet"}
+            reduced={reduced}
+            theme={theme}
+          />
+        </FadeIn>
       </div>
     </section>
   );

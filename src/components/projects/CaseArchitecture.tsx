@@ -13,7 +13,7 @@ const CX = X + NODE_W / 2;
 const YS = [30, 180, 330, 480];
 
 /** Animated request/response flow for a single project. */
-export default function CaseArchitecture({ project }: { project: Project }) {
+export default function CaseArchitecture({ project, database }: { project: Project; database: string }) {
   const ref = useRef<SVGSVGElement>(null);
   const inView = useInView(ref, { once: true, margin: "0px 0px -20% 0px" });
 
@@ -22,7 +22,7 @@ export default function CaseArchitecture({ project }: { project: Project }) {
     { k: "FRONTEND", v: hasNext ? "React / Next.js" : "React", tone: "#3d7bff" },
     { k: "API", v: "REST · JSON over HTTPS", tone: "#22d3ee" },
     { k: "NODE + EXPRESS", v: "Business logic · Auth", tone: "#8b5cf6" },
-    { k: "DATABASE", v: project.caseStudy.database, tone: "#34d399" },
+    { k: "DATABASE", v: database, tone: "#34d399" },
   ];
   const rails = ["HTTPS · JSON", "JWT BEARER", "ORM / DRIVER"];
 
@@ -50,7 +50,7 @@ export default function CaseArchitecture({ project }: { project: Project }) {
           </feMerge>
         </filter>
         <pattern id="ca-grid" width="30" height="30" patternUnits="userSpaceOnUse">
-          <path d="M30 0H0V30" fill="none" stroke="rgba(255,255,255,0.035)" />
+          <path d="M30 0H0V30" fill="none" style={{ stroke: "rgb(var(--rgb-contrast) / 0.035)" }} />
         </pattern>
       </defs>
       <rect width={W} height={H} fill="url(#ca-grid)" />
@@ -88,7 +88,7 @@ export default function CaseArchitecture({ project }: { project: Project }) {
             <circle r="3" fill="#a78bfa" filter="url(#ca-glow)">
               <animateMotion dur="2.2s" repeatCount="indefinite" path={d} begin={`${i * 0.5}s`} />
             </circle>
-            <rect x={svcX} y={svcY(i)} width={180} height={44} rx={10} fill="rgba(16,19,27,0.9)" stroke="rgba(255,255,255,0.1)" />
+            <rect x={svcX} y={svcY(i)} width={180} height={44} rx={10} style={{ fill: "rgb(var(--rgb-surface) / 0.9)", stroke: "rgb(var(--rgb-contrast) / 0.1)" }} />
             <circle cx={svcX + 18} cy={svcY(i) + 22} r={3} fill="#8b5cf6" />
             <text x={svcX + 32} y={svcY(i) + 26} className="fill-fg font-mono text-[12px] tracking-[0.06em]">
               {s}
@@ -105,7 +105,7 @@ export default function CaseArchitecture({ project }: { project: Project }) {
           animate={inView ? { opacity: 1, y: 0 } : undefined}
           transition={{ delay: i * 0.15, duration: 0.8, ease: EXPO }}
         >
-          <rect x={X} y={YS[i]} width={NODE_W} height={NODE_H} rx={16} fill="rgba(16,19,27,0.92)" stroke="rgba(255,255,255,0.12)" />
+          <rect x={X} y={YS[i]} width={NODE_W} height={NODE_H} rx={16} style={{ fill: "rgb(var(--rgb-surface) / 0.92)", stroke: "rgb(var(--rgb-contrast) / 0.12)" }} />
           <rect x={X + 20} y={YS[i]} width={NODE_W - 40} height={1} fill={l.tone} />
           <circle cx={X + 26} cy={YS[i] + 30} r={4} fill={l.tone} filter="url(#ca-glow)" />
           <text x={X + 40} y={YS[i] + 34} className="fill-fg font-display text-[18px] font-medium tracking-[0.04em]">

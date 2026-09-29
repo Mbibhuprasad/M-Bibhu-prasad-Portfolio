@@ -25,12 +25,24 @@ const RELATIONS: [string, string][] = [
   ["python", "agents"],
   ["rag", "openai"],
   ["agents", "gemini"],
+  ["react", "tailwind"],
+  ["mysql", "sequelize"],
+  ["node", "cloudinary"],
+  ["react", "three"],
+  ["three", "webgl"],
+  ["webgl", "glsl"],
+  ["webgl", "canvas"],
+  ["js", "wasm"],
+  ["wasm", "workers"],
 ];
 
 type Ring = { ids: string[]; radius: number; period: number; dir: 1 | -1; offset: number };
 
-const byId = new Map(technologies.map((t) => [t.id, t]));
-const ids = (tier: Tier) => technologies.filter((t) => t.tier === tier).map((t) => t.id);
+/** Only technologies flagged for the orbit are drawn; the full list lives in the data. */
+const ORBIT = technologies.filter((t) => t.orbit);
+const byId = new Map(ORBIT.map((t) => [t.id, t]));
+const ids = (tier: Tier, mobile = false) =>
+  ORBIT.filter((t) => t.tier === tier && (!mobile || t.orbit === "all")).map((t) => t.id);
 
 const EDGES: [string, string][] = [
   ...ids("primary").map((id) => ["core", id] as [string, string]),
@@ -52,14 +64,14 @@ function buildRings(size: number, mobile: boolean): Ring[] {
   if (mobile) {
     return [
       { ids: ids("primary"), radius: size * 0.25, period: 30, dir: 1, offset: -Math.PI / 2 },
-      { ids: [...ids("secondary"), ...ids("ai")], radius: size * 0.435, period: 48, dir: -1, offset: -Math.PI / 2 + 0.2 },
+      { ids: [...ids("secondary", true), ...ids("ai", true), ...ids("exploring", true)], radius: size * 0.435, period: 48, dir: -1, offset: -Math.PI / 2 + 0.2 },
     ];
   }
   const k = size / 900;
   return [
     { ids: ids("primary"), radius: 170 * k, period: 30, dir: 1, offset: -Math.PI / 2 },
     { ids: ids("secondary"), radius: 290 * k, period: 48, dir: 1, offset: -Math.PI / 2 + Math.PI / 8 },
-    { ids: ids("ai"), radius: 390 * k, period: 64, dir: -1, offset: Math.PI / 4 },
+    { ids: [...ids("ai"), ...ids("exploring")], radius: 390 * k, period: 64, dir: -1, offset: Math.PI / 4 },
   ];
 }
 
@@ -78,11 +90,12 @@ function positions(rings: Ring[], angles: number[]) {
 const nodeTransform = (p: { x: number; y: number }) =>
   `translate3d(${p.x.toFixed(2)}px, ${p.y.toFixed(2)}px, 0) translate(-50%, -50%)`;
 
-const tierLabel: Record<Tier, string> = { primary: "Primary", secondary: "Secondary", ai: "AI" };
+const tierLabel: Record<Tier, string> = { primary: "Primary", secondary: "Secondary", ai: "AI", exploring: "Exploring" };
 const tierDot: Record<Tier, string> = {
   primary: "bg-electric shadow-[0_0_10px_#3d7bff]",
   secondary: "bg-cyan shadow-[0_0_10px_#22d3ee]",
   ai: "bg-violet shadow-[0_0_10px_#8b5cf6]",
+  exploring: "bg-accent shadow-[0_0_10px_var(--color-accent)]",
 };
 
 export default function Galaxy() {
@@ -179,7 +192,7 @@ export default function Galaxy() {
   };
 
   return (
-    <section id="stack" className="relative overflow-hidden py-28 md:py-40">
+    <section id="stack" className="relative overflow-hidden py-20 md:py-28">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute left-1/2 top-1/2 size-[1100px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(61,123,255,0.12)_0%,rgba(139,92,246,0.05)_40%,transparent_70%)]"
@@ -187,7 +200,7 @@ export default function Galaxy() {
       <div className="container-x relative">
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="flex flex-col gap-6">
-            <SectionLabel index="03">STACK</SectionLabel>
+            <SectionLabel index="04">STACK</SectionLabel>
             <RevealLines
               lines={["TECHNOLOGY", "GALAXY"]}
               className="font-display text-[56px] font-medium leading-[0.92] tracking-[-0.04em] md:text-[96px]"
@@ -199,7 +212,7 @@ export default function Galaxy() {
               The tools I reach for most sit closest to the core. {mobile ? "Tap" : "Click"} any node to see where it&apos;s been used.
             </p>
             <div className="mt-5 flex flex-wrap gap-4 font-mono text-[11px] tracking-[0.14em] text-fg-3">
-              {(["primary", "secondary", "ai"] as Tier[]).map((t) => (
+              {(["primary", "secondary", "ai", "exploring"] as Tier[]).map((t) => (
                 <span key={t} className="flex items-center gap-2">
                   <span className={`size-1.5 rounded-full ${tierDot[t]}`} /> {tierLabel[t].toUpperCase()}
                 </span>
@@ -221,7 +234,7 @@ export default function Galaxy() {
                   key={i}
                   r={r.radius}
                   fill="none"
-                  stroke={i === 2 ? "rgba(139,92,246,0.22)" : "rgba(242,244,248,0.08)"}
+                  style={{ stroke: i === 2 ? "rgba(139,92,246,0.22)" : "rgb(var(--rgb-fg) / 0.08)" }}
                   strokeDasharray={i === 0 ? undefined : "2 6"}
                 />
               ))}
@@ -255,8 +268,8 @@ export default function Galaxy() {
             </svg>
 
             {/* core */}
-            <div className="absolute left-1/2 top-1/2 grid size-[84px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-white/15 bg-[radial-gradient(circle_at_50%_40%,rgba(139,92,246,0.55),rgba(61,123,255,0.25)_55%,rgba(5,6,10,0.9)_100%)] shadow-[0_0_60px_rgba(61,123,255,0.35)] md:size-[128px]">
-              <span className="absolute inset-[-10px] rounded-full border border-dashed border-white/10" aria-hidden="true" />
+            <div className="absolute left-1/2 top-1/2 grid size-[84px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-contrast/15 bg-[radial-gradient(circle_at_50%_40%,rgba(139,92,246,0.55),rgba(61,123,255,0.25)_55%,rgb(var(--rgb-void)/0.9)_100%)] shadow-[0_0_60px_rgba(61,123,255,0.35)] md:size-[128px]">
+              <span className="absolute inset-[-10px] rounded-full border border-dashed border-contrast/10" aria-hidden="true" />
               <span className="font-display text-sm font-semibold tracking-[0.12em] md:text-lg">BIBHU</span>
             </div>
 
@@ -281,6 +294,7 @@ export default function Galaxy() {
                     onBlur={() => setHover(null)}
                     aria-pressed={isSel}
                     aria-label={`${t.name}: ${t.category}`}
+                    data-cursor="tech"
                     className="group absolute left-0 top-0 will-change-transform"
                     style={{ transform: nodeTransform(basePos[id] ?? { x: 0, y: 0 }), opacity: dim ? 0.3 : 1, transition: "opacity .4s" }}
                   >
@@ -291,8 +305,10 @@ export default function Galaxy() {
                         isSel
                           ? "scale-110 border-fg/70 bg-fg/10 text-fg"
                           : t.tier === "ai"
-                            ? "border-violet/40 bg-ink/80 text-[#d7dbe5]"
-                            : "border-line bg-ink/80 text-[#d7dbe5]"
+                            ? "border-violet/40 bg-ink/80 text-chip"
+                            : t.tier === "exploring"
+                              ? "border-accent/35 bg-ink/80 text-chip"
+                              : "border-line bg-ink/80 text-chip"
                       }`}
                     >
                       <span className={`size-1.5 rounded-full ${tierDot[t.tier]}`} aria-hidden="true" />
@@ -327,7 +343,10 @@ export default function Galaxy() {
                 <h3 className="mt-8 font-display text-[40px] font-medium leading-none tracking-[-0.03em] md:text-[48px]">
                   {selected.name.toUpperCase()}
                 </h3>
-                <p className="mt-3 text-fg-2">{selected.category}</p>
+                <p className="mt-3 text-fg-2">
+                  <span className="text-fg-3">{selected.group} · </span>
+                  {selected.category}
+                </p>
 
                 <div className="mt-8 border-t border-line pt-6">
                   <span className="label">Used in</span>

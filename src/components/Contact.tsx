@@ -61,7 +61,7 @@ export default function Contact() {
                 cy={r * 0.08}
                 rx={r}
                 ry={r * 0.62}
-                stroke={i % 3 === 0 ? "rgba(34,211,238,0.22)" : "rgba(242,244,248,0.08)"}
+                style={{ stroke: i % 3 === 0 ? "rgba(34,211,238,0.22)" : "rgb(var(--rgb-fg) / 0.08)" }}
                 strokeWidth={1}
                 strokeDasharray={i % 2 ? "2 6" : undefined}
               />
@@ -81,7 +81,7 @@ export default function Contact() {
             );
           })}
         </svg>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,#05060a_75%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,var(--color-void)_75%)]" />
       </div>
 
       <div className="container-x relative">

@@ -7,21 +7,24 @@ import Timeline from "@/components/Timeline";
 import Services from "@/components/Services";
 import Profile from "@/components/Profile";
 import Contact from "@/components/Contact";
-import Footer from "@/components/Footer";
+import Education from "@/components/Education";
+import SceneStack from "@/components/SceneStack";
 
 export default function Home() {
   return (
     <main id="top" className="relative">
       <Hero />
-      <About />
+      <SceneStack>
+        <Profile />
+        <About />
+      </SceneStack>
       <Galaxy />
       <Projects />
-      <Architecture />
       <Timeline />
       <Services />
-      <Profile />
+      <Architecture />
       <Contact />
-      <Footer />
+      <Education />
     </main>
   );
 }

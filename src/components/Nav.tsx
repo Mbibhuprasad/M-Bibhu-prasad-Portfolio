@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { navLinks, profile } from "@/lib/data";
 import { Logo, StatusDot } from "@/components/ui";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 
 export default function Nav() {
   const [open, setOpen] = useState(false);
@@ -38,47 +39,48 @@ export default function Nav() {
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 md:px-8 md:pt-6">
-        <nav aria-label="Primary" className="flex items-center justify-between gap-4">
+        <nav aria-label="Primary" className="flex items-center justify-between gap-2 md:gap-4">
           <a href={to("#top")} className="glass flex h-12 items-center gap-2.5 rounded-full pl-3.5 pr-5 md:h-13">
             <Logo />
-            <span className="font-display text-[15px] font-semibold tracking-[0.06em]">{profile.shortName}</span>
+            <span className="whitespace-nowrap font-display text-[15px] font-semibold tracking-[0.06em] max-[374px]:whitespace-normal max-[374px]:leading-tight">
+              {profile.shortName}
+            </span>
           </a>
 
-          <div className="glass hidden h-10 items-center gap-2.5 rounded-full border-signal/25! px-4 font-mono text-[11px] tracking-[0.14em] text-[#c9f5e3] lg:flex">
-            <StatusDot />
-            AVAILABLE FOR OPPORTUNITIES
-          </div>
-
-          <div className="glass hidden h-13 items-center gap-7 rounded-full pl-6 pr-2 font-mono text-xs tracking-[0.14em] md:flex">
-            {navLinks.slice(0, 4).map((l) => (
+          <div className="flex items-center gap-2">
+            <div className="glass hidden h-13 items-center gap-7 rounded-full pl-6 pr-2 font-mono text-xs tracking-[0.14em] md:flex">
+              {navLinks.slice(0, 4).map((l) => (
+                <a
+                  key={l.href}
+                  href={to(l.href)}
+                  className={`transition-colors duration-300 hover:text-fg ${active === l.href ? "text-fg" : "text-fg-2"}`}
+                >
+                  {l.label}
+                </a>
+              ))}
               <a
-                key={l.href}
-                href={to(l.href)}
-                className={`transition-colors duration-300 hover:text-fg ${active === l.href ? "text-fg" : "text-fg-2"}`}
+                href={to("#contact")}
+                className={`inline-flex h-9.5 items-center rounded-full border px-4 transition-colors duration-300 ${
+                  active === "#contact" ? "border-fg bg-fg text-void" : "border-line bg-contrast/5 text-fg hover:bg-contrast/10"
+                }`}
               >
-                {l.label}
+                CONTACT
               </a>
-            ))}
-            <a
-              href={to("#contact")}
-              className={`inline-flex h-9.5 items-center rounded-full border px-4 transition-colors duration-300 ${
-                active === "#contact" ? "border-fg bg-fg text-void" : "border-line bg-white/5 text-fg hover:bg-white/10"
-              }`}
-            >
-              CONTACT
-            </a>
-          </div>
+            </div>
 
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            aria-expanded={open}
-            aria-controls="mobile-menu"
-            className="glass flex h-12 items-center gap-2.5 rounded-full px-5 font-mono text-xs tracking-[0.14em] md:hidden"
-          >
-            <StatusDot />
-            MENU
-          </button>
+            <ThemeToggle />
+
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              aria-expanded={open}
+              aria-controls="mobile-menu"
+              className="glass flex h-12 items-center gap-2.5 rounded-full px-4 font-mono text-xs tracking-[0.14em] sm:px-5 md:hidden"
+            >
+              <StatusDot />
+              MENU
+            </button>
+          </div>
         </nav>
       </header>
 
@@ -98,7 +100,7 @@ export default function Nav() {
             <div className="flex items-center justify-between">
               <span className="glass flex h-12 items-center gap-2.5 rounded-full pl-3.5 pr-5">
                 <Logo />
-                <span className="font-display text-[15px] font-semibold tracking-[0.06em]">{profile.shortName}</span>
+                <span className="whitespace-nowrap font-display text-[15px] font-semibold tracking-[0.06em]">{profile.shortName}</span>
               </span>
               <button
                 type="button"
@@ -133,9 +135,6 @@ export default function Nav() {
             </ul>
 
             <div className="mt-auto flex flex-col gap-5">
-              <div className="flex items-center gap-2.5 font-mono text-[11px] tracking-[0.14em] text-[#c9f5e3]">
-                <StatusDot /> AVAILABLE FOR OPPORTUNITIES
-              </div>
               <a href={`mailto:${profile.email}`} className="text-fg-2">{profile.email}</a>
               <div className="flex gap-6 font-mono text-xs tracking-[0.14em]">
                 <a href={profile.github} target="_blank" rel="noreferrer">GITHUB ↗</a>

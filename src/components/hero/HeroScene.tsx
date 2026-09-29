@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Line } from "@react-three/drei";
+import { Line, useTexture } from "@react-three/drei";
 import * as THREE from "three";
+import type { Theme } from "@/lib/theme";
 
 export type HeroLayout = "desktop" | "tablet" | "mobile";
 
@@ -14,9 +15,26 @@ type SceneProps = {
   pointer: React.RefObject<{ x: number; y: number }>;
   layout: HeroLayout;
   reduced: boolean;
+  theme: Theme;
 };
 
+/**
+ * Scene colours per theme. Dark is the original look. On a light page additive
+ * white glows disappear, so light mode switches to normal blending and ink/blue
+ * tones — same geometry, camera and motion.
+ */
+const PALETTE = {
+  dark: { wire: "#F2F4F8", wireOpacity: 0.085, facet: "#CFE0FF", particles: "#CFE0FF", particleOpacity: 0.75, glowBlend: THREE.AdditiveBlending, glowScale: 1 },
+  light: { wire: "#0B0F1A", wireOpacity: 0.12, facet: "#3D7BFF", particles: "#3D7BFF", particleOpacity: 0.55, glowBlend: THREE.NormalBlending, glowScale: 0.55 },
+} as const;
+type Palette = (typeof PALETTE)[Theme];
+
 const PARTICLES: Record<HeroLayout, number> = { desktop: 1800, tablet: 900, mobile: 300 };
+/** diamond size relative to the original composition */
+const CORE_SCALE = 1.12;
+/** portrait sits inside the diamond at ~55% of its visual width */
+const PORTRAIT_SRC = "/profile.png";
+const PORTRAIT_R = 0.27 * CORE_SCALE;
 const BASE_Z = 8;
 const BASE_FOV = 35;
 
@@ -40,10 +58,10 @@ function useGlowTexture() {
   }, []);
 }
 
-function Glow({ tex, color, scale, opacity = 1 }: { tex: THREE.Texture; color: string; scale: number; opacity?: number }) {
+function Glow({ tex, color, scale, opacity = 1, pal }: { tex: THREE.Texture; color: string; scale: number; opacity?: number; pal: Palette }) {
   return (
     <sprite scale={[scale, scale, 1]}>
-      <spriteMaterial map={tex} color={color} blending={THREE.AdditiveBlending} depthWrite={false} transparent opacity={opacity} />
+      <spriteMaterial map={tex} color={color} blending={pal.glowBlend} depthWrite={false} transparent opacity={opacity * pal.glowScale} />
     </sprite>
   );
 }
@@ -61,7 +79,7 @@ function useCoreOffset(layout: HeroLayout): [number, number, number] {
 
 /* ───────── pieces ───────── */
 
-function WireSphere({ radius = 1.05 }: { radius?: number }) {
+function WireSphere({ radius = 1.05, pal }: { radius?: number; pal: Palette }) {
   const geo = useMemo(() => {
     const pts: number[] = [];
     const seg = 72;
@@ -95,12 +113,12 @@ function WireSphere({ radius = 1.05 }: { radius?: number }) {
 
   return (
     <lineSegments geometry={geo}>
-      <lineBasicMaterial color="#F2F4F8" transparent opacity={0.085} depthWrite={false} />
+      <lineBasicMaterial color={pal.wire} transparent opacity={pal.wireOpacity} depthWrite={false} />
     </lineSegments>
   );
 }
 
-function Core({ tex, reduced }: { tex: THREE.Texture; reduced: boolean }) {
+function Core({ tex, reduced, pal }: { tex: THREE.Texture; reduced: boolean; pal: Palette }) {
   const ref = useRef<THREE.Group>(null);
   useFrame((_, dt) => {
     if (reduced || !ref.current) return;
@@ -108,9 +126,9 @@ function Core({ tex, reduced }: { tex: THREE.Texture; reduced: boolean }) {
     ref.current.rotation.x += dt * 0.09;
   });
   return (
-    <>
-      <Glow tex={tex} color="#3D7BFF" scale={4.2} opacity={0.32} />
-      <Glow tex={tex} color="#8B5CF6" scale={2.2} opacity={0.6} />
+    <group scale={CORE_SCALE}>
+      <Glow tex={tex} color="#3D7BFF" scale={4.2} opacity={0.32} pal={pal} />
+      <Glow tex={tex} color="#8B5CF6" scale={2.2} opacity={0.6} pal={pal} />
       <group ref={ref}>
         <mesh>
           <icosahedronGeometry args={[0.46, 0]} />
@@ -125,15 +143,53 @@ function Core({ tex, reduced }: { tex: THREE.Texture; reduced: boolean }) {
         </mesh>
         <mesh scale={1.015}>
           <icosahedronGeometry args={[0.46, 0]} />
-          <meshBasicMaterial color="#CFE0FF" wireframe transparent opacity={0.5} />
+          <meshBasicMaterial color={pal.facet} wireframe transparent opacity={0.5} />
         </mesh>
         <mesh scale={1.55}>
           <icosahedronGeometry args={[0.46, 1]} />
           <meshBasicMaterial color="#3D7BFF" wireframe transparent opacity={0.07} depthWrite={false} />
         </mesh>
       </group>
-      <Glow tex={tex} color="#ffffff" scale={0.35} opacity={0.9} />
-    </>
+      <Glow tex={tex} color="#ffffff" scale={0.35} opacity={0.9} pal={pal} />
+    </group>
+  );
+}
+
+/**
+ * Circular portrait inside the diamond. It lives in the tilting world group (not the
+ * spinning core), so it follows pointer tilt and the scroll camera without turning
+ * like a spinning avatar. Drawn over the diamond (depthTest off, late render order):
+ * orbit lines → diamond → glow → portrait → rim highlight.
+ */
+function Portrait({ tex, pal }: { tex: THREE.Texture; pal: Palette }) {
+  const photo = useTexture(PORTRAIT_SRC, (t) => {
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+  });
+  const r = PORTRAIT_R;
+  const over = { transparent: true, depthTest: false, depthWrite: false, toneMapped: false } as const;
+  return (
+    <group position={[0, 0, 0.6]}>
+      <Glow tex={tex} color="#3D7BFF" scale={r * 5} opacity={0.35} pal={pal} />
+      <mesh renderOrder={10}>
+        <circleGeometry args={[r, 64]} />
+        <meshBasicMaterial map={photo} {...over} />
+      </mesh>
+      {/* thin rim */}
+      <mesh renderOrder={11}>
+        <ringGeometry args={[r * 1.02, r * 1.07, 96]} />
+        <meshBasicMaterial color={pal.facet} opacity={0.6} {...over} />
+      </mesh>
+      {/* small orange accent arc */}
+      <mesh renderOrder={11}>
+        <ringGeometry args={[r * 1.12, r * 1.145, 48, 1, Math.PI * 0.12, Math.PI * 0.28]} />
+        <meshBasicMaterial color="#FF7A1A" opacity={0.85} {...over} />
+      </mesh>
+      {/* rim highlight */}
+      <sprite position={[-r * 0.72, r * 0.72, 0]} scale={[r * 0.55, r * 0.55, 1]} renderOrder={12}>
+        <spriteMaterial map={tex} color="#ffffff" blending={pal.glowBlend} opacity={0.5 * pal.glowScale} {...over} />
+      </sprite>
+    </group>
   );
 }
 
@@ -170,7 +226,7 @@ const ORBITS: OrbitSpec[] = [
   },
 ];
 
-function Orbit({ spec, tex, reduced }: { spec: OrbitSpec; tex: THREE.Texture; reduced: boolean }) {
+function Orbit({ spec, tex, reduced, pal }: { spec: OrbitSpec; tex: THREE.Texture; reduced: boolean; pal: Palette }) {
   const points = useMemo(
     () =>
       Array.from({ length: 161 }, (_, i) => {
@@ -211,7 +267,7 @@ function Orbit({ spec, tex, reduced }: { spec: OrbitSpec; tex: THREE.Texture; re
               <sphereGeometry args={[0.022 * (n.size / 0.3), 12, 12]} />
               <meshBasicMaterial color="#ffffff" />
             </mesh>
-            <Glow tex={tex} color={n.color} scale={n.size} opacity={0.9} />
+            <Glow tex={tex} color={n.color} scale={n.size} opacity={0.9} pal={pal} />
           </group>
         ))}
       </group>
@@ -219,7 +275,7 @@ function Orbit({ spec, tex, reduced }: { spec: OrbitSpec; tex: THREE.Texture; re
   );
 }
 
-function Particles({ count, pointer, tex, reduced }: { count: number; pointer: SceneProps["pointer"]; tex: THREE.Texture; reduced: boolean }) {
+function Particles({ count, pointer, tex, reduced, pal }: { count: number; pointer: SceneProps["pointer"]; tex: THREE.Texture; reduced: boolean; pal: Palette }) {
   const { base, pos, seeds } = useMemo(() => {
     const base = new Float32Array(count * 3);
     const seeds = new Float32Array(count);
@@ -274,18 +330,19 @@ function Particles({ count, pointer, tex, reduced }: { count: number; pointer: S
         size={0.035}
         sizeAttenuation
         map={tex}
-        color="#CFE0FF"
+        color={pal.particles}
         transparent
-        opacity={0.75}
+        opacity={pal.particleOpacity}
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={pal.glowBlend}
       />
     </points>
   );
 }
 
-function World({ progress, pointer, layout, reduced }: SceneProps) {
+function World({ progress, pointer, layout, reduced, theme }: SceneProps) {
   const tex = useGlowTexture();
+  const pal = PALETTE[theme];
   const offset = useCoreOffset(layout);
   const world = useRef<THREE.Group>(null);
   const spin = useRef<THREE.Group>(null);
@@ -321,16 +378,19 @@ function World({ progress, pointer, layout, reduced }: SceneProps) {
       <pointLight position={[offset[0] - 2, offset[1] - 1.2, 2]} color="#8B5CF6" intensity={16} />
       <pointLight position={[offset[0], offset[1], 1.2]} color="#22D3EE" intensity={3} />
 
-      <Particles count={PARTICLES[layout]} pointer={pointer} tex={tex} reduced={reduced} />
+      <Particles count={PARTICLES[layout]} pointer={pointer} tex={tex} reduced={reduced} pal={pal} />
 
       <group position={offset} scale={scale}>
         <group ref={world}>
           <group ref={spin} rotation={[0, 0, -0.24]}>
-            <WireSphere />
+            <WireSphere pal={pal} />
           </group>
-          <Core tex={tex} reduced={reduced} />
+          <Core tex={tex} reduced={reduced} pal={pal} />
+          <Suspense fallback={null}>
+            <Portrait tex={tex} pal={pal} />
+          </Suspense>
           {ORBITS.map((o, i) => (
-            <Orbit key={i} spec={o} tex={tex} reduced={reduced} />
+            <Orbit key={i} spec={o} tex={tex} reduced={reduced} pal={pal} />
           ))}
         </group>
       </group>

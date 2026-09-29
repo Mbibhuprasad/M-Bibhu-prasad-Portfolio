@@ -16,7 +16,7 @@ type PanelProps = {
 function Panel({ className = "", depth = 10, title, accent, children }: PanelProps) {
   return (
     <div
-      className={`absolute rounded-2xl border border-white/10 bg-[rgba(14,17,25,0.78)] p-4 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.8)] backdrop-blur-md transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${className}`}
+      className={`absolute rounded-2xl border border-contrast/10 bg-[rgb(var(--rgb-panel)/0.78)] p-4 shadow-[var(--panel-shadow)] backdrop-blur-md transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${className}`}
       style={{ transform: `translate3d(calc(var(--mx, 0) * ${depth}px), calc(var(--my, 0) * ${depth}px), 0)` }}
     >
       <span
@@ -28,8 +28,8 @@ function Panel({ className = "", depth = 10, title, accent, children }: PanelPro
         <div className="mb-3 flex items-center justify-between font-mono text-[10px] tracking-[0.16em] text-fg-3">
           <span>{title}</span>
           <span className="flex gap-1" aria-hidden="true">
-            <span className="size-1 rounded-full bg-white/20" />
-            <span className="size-1 rounded-full bg-white/20" />
+            <span className="size-1 rounded-full bg-contrast/20" />
+            <span className="size-1 rounded-full bg-contrast/20" />
             <span className="size-1 rounded-full" style={{ background: accent }} />
           </span>
         </div>
@@ -70,7 +70,7 @@ function Bars({ values, accent, h = 70 }: { values: number[]; accent: string; h?
           className="flex-1 rounded-sm"
           style={{
             height: `${(v / max) * 100}%`,
-            background: i === values.length - 1 ? accent : "rgba(242,244,248,0.14)",
+            background: i === values.length - 1 ? accent : "rgb(var(--rgb-fg) / 0.14)",
           }}
         />
       ))}
@@ -85,7 +85,7 @@ function Meter({ label, value, accent }: { label: string; value: number; accent:
         <span>{label}</span>
         <span>{value}%</span>
       </div>
-      <div className="h-1 rounded-full bg-white/8">
+      <div className="h-1 rounded-full bg-contrast/8">
         <div className="h-full rounded-full" style={{ width: `${value}%`, background: value < 30 ? "#f87171" : accent }} />
       </div>
     </div>
@@ -94,7 +94,7 @@ function Meter({ label, value, accent }: { label: string; value: number; accent:
 
 function Row({ a, b, c, accent, strong }: { a: string; b: string; c?: string; accent?: string; strong?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-t border-white/6 py-2 text-[11px] first:border-t-0">
+    <div className="flex items-center justify-between gap-3 border-t border-contrast/6 py-2 text-[11px] first:border-t-0">
       <span className="font-mono text-fg-3">{a}</span>
       <span className={`flex-1 truncate ${strong ? "text-fg" : "text-fg-2"}`}>{b}</span>
       {c && (
@@ -153,7 +153,7 @@ function QR({ accent }: { accent: string }) {
   );
   return (
     <svg viewBox={`0 0 ${n} ${n}`} className="size-full" shapeRendering="crispEdges" aria-hidden="true">
-      <g fill="rgba(242,244,248,0.85)">{cells}</g>
+      <g style={{ fill: "rgb(var(--rgb-fg) / 0.85)" }}>{cells}</g>
       <F x={0} y={0} />
       <F x={n - 7} y={0} />
       <F x={0} y={n - 7} />
@@ -166,7 +166,7 @@ function QR({ accent }: { accent: string }) {
 function HealthScene({ a }: { a: string }) {
   return (
     <>
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white/5" aria-hidden="true">
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-contrast/5" aria-hidden="true">
         <Glyph d={Icon.cross} size={260} />
       </div>
       <Panel accent={a} depth={14} title="PATIENT" className="left-[5%] top-[8%] w-[46%]">
@@ -174,7 +174,7 @@ function HealthScene({ a }: { a: string }) {
           <span className="grid size-10 place-items-center rounded-full font-display text-sm" style={{ background: `${a}22`, color: a }}>AK</span>
           <div>
             <p className="text-sm text-fg">Patient #A-1042</p>
-            <p className="font-mono text-[10px] text-fg-3">CARDIOLOGY · FOLLOW-UP</p>
+            <p className="font-mono text-[10px] text-fg-3">ORTHOPAEDICS · FOLLOW-UP</p>
           </div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2">
@@ -183,7 +183,7 @@ function HealthScene({ a }: { a: string }) {
             ["BP", "118/76", ""],
             ["SpO₂", "98", "%"],
           ].map(([k, v, u]) => (
-            <div key={k} className="rounded-lg border border-white/6 bg-white/3 p-2">
+            <div key={k} className="rounded-lg border border-contrast/6 bg-contrast/3 p-2">
               <p className="font-mono text-[9px] text-fg-3">{k}</p>
               <p className="font-display text-sm text-fg">
                 {v}
@@ -217,7 +217,7 @@ function HealthScene({ a }: { a: string }) {
       <Panel accent={a} depth={18} title="DOCTOR SCHEDULE" className="bottom-[12%] right-[6%] w-[36%]">
         <div className="grid grid-cols-7 gap-1" aria-hidden="true">
           {Array.from({ length: 28 }).map((_, i) => (
-            <span key={i} className="aspect-square rounded-[3px]" style={{ background: [3, 5, 9, 10, 16, 18, 22, 25].includes(i) ? a : "rgba(242,244,248,0.07)", opacity: [9, 22].includes(i) ? 0.5 : 1 }} />
+            <span key={i} className="aspect-square rounded-[3px]" style={{ background: [3, 5, 9, 10, 16, 18, 22, 25].includes(i) ? a : "rgb(var(--rgb-fg) / 0.07)", opacity: [9, 22].includes(i) ? 0.5 : 1 }} />
           ))}
         </div>
       </Panel>
@@ -232,7 +232,7 @@ function RestaurantScene({ a }: { a: string }) {
       <Panel accent={a} depth={10} title="POS · COUNTER 1" className="left-[4%] top-[7%] w-[50%]">
         <div className="grid grid-cols-3 gap-2">
           {menu.map((m, i) => (
-            <div key={m} className="rounded-lg border p-2" style={{ borderColor: i === 0 ? `${a}80` : "rgba(255,255,255,0.06)", background: i === 0 ? `${a}14` : "rgba(255,255,255,0.02)" }}>
+            <div key={m} className="rounded-lg border p-2" style={{ borderColor: i === 0 ? `${a}80` : "rgb(var(--rgb-contrast) / 0.06)", background: i === 0 ? `${a}14` : "rgb(var(--rgb-contrast) / 0.02)" }}>
               <p className="truncate text-[11px] text-fg">{m}</p>
               <p className="mt-1 font-mono text-[9px] text-fg-3">ITEM {String(i + 1).padStart(2, "0")}</p>
             </div>
@@ -249,7 +249,7 @@ function RestaurantScene({ a }: { a: string }) {
           ["#T-08", "Table 9 · QR order", "NEW"],
           ["#T-06", "Takeaway · 2 items", "READY"],
         ].map(([id, d, s]) => (
-          <div key={id} className="mb-2 rounded-lg border border-dashed border-white/10 p-2.5 last:mb-0">
+          <div key={id} className="mb-2 rounded-lg border border-dashed border-contrast/10 p-2.5 last:mb-0">
             <div className="flex justify-between font-mono text-[10px]">
               <span className="text-fg">{id}</span>
               <span style={{ color: s === "READY" ? "#34d399" : a }}>{s}</span>
@@ -297,10 +297,10 @@ function BookingScene({ a }: { a: string }) {
         {tiles.map(([label, d], i) => (
           <div
             key={label}
-            className={`rounded-2xl border border-white/10 bg-[rgba(14,17,25,0.78)] p-4 backdrop-blur-md transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${i === 0 ? "col-span-2 row-span-2" : ""}`}
+            className={`rounded-2xl border border-contrast/10 bg-[rgb(var(--rgb-panel)/0.78)] p-4 backdrop-blur-md transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${i === 0 ? "col-span-2 row-span-2" : ""}`}
             style={{ transform: `translate3d(calc(var(--mx, 0) * ${8 + i * 3}px), calc(var(--my, 0) * ${8 + i * 3}px), 0)`, borderColor: i === 0 ? `${a}66` : undefined }}
           >
-            <span style={{ color: i === 0 ? a : "#a7aebf" }}>
+            <span style={{ color: i === 0 ? a : "var(--color-fg-2)" }}>
               <Glyph d={d} size={i === 0 ? 30 : 20} />
             </span>
             <p className="mt-3 font-mono text-[10px] tracking-[0.16em] text-fg-2">{label}</p>
@@ -320,7 +320,7 @@ function BookingScene({ a }: { a: string }) {
             ["CHECK-IN", "12 Oct"],
             ["CHECK-OUT", "15 Oct"],
           ].map(([k, v]) => (
-            <div key={k} className="rounded-lg border border-white/6 p-2">
+            <div key={k} className="rounded-lg border border-contrast/6 p-2">
               <p className="font-mono text-[9px] text-fg-3">{k}</p>
               <p className="text-sm text-fg">{v}</p>
             </div>
@@ -335,7 +335,7 @@ function BookingScene({ a }: { a: string }) {
       <Panel accent={a} depth={12} title="ONE ACCOUNT · FIVE SERVICES" className="bottom-[8%] right-[8%] w-[46%]">
         <div className="flex items-center gap-2">
           {tiles.map(([label, d]) => (
-            <span key={label} className="grid size-9 place-items-center rounded-full border border-white/10 text-fg-2">
+            <span key={label} className="grid size-9 place-items-center rounded-full border border-contrast/10 text-fg-2">
               <Glyph d={d} size={15} />
             </span>
           ))}
@@ -360,7 +360,7 @@ function LabScene({ a }: { a: string }) {
         {items.map(([name, d], i) => (
           <div
             key={name}
-            className="flex-1 rounded-2xl border border-white/10 bg-[rgba(14,17,25,0.78)] p-4 backdrop-blur-md transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            className="flex-1 rounded-2xl border border-contrast/10 bg-[rgb(var(--rgb-panel)/0.78)] p-4 backdrop-blur-md transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
             style={{ transform: `translate3d(calc(var(--mx, 0) * ${10 + i * 5}px), calc(var(--my, 0) * ${10 + i * 5}px), 0)` }}
           >
             <div className="grid aspect-[4/3] place-items-center rounded-lg" style={{ background: `radial-gradient(circle, ${a}26, transparent 70%)`, color: a }}>
@@ -378,7 +378,7 @@ function LabScene({ a }: { a: string }) {
           <span className="rounded-full px-2 py-0.5 font-mono text-[9px]" style={{ background: `${a}22`, color: a }}>
             OPEN
           </span>
-          <span className="rounded-full bg-white/5 px-2 py-0.5 font-mono text-[9px] text-fg-2">ASSIGN →</span>
+          <span className="rounded-full bg-contrast/5 px-2 py-0.5 font-mono text-[9px] text-fg-2">ASSIGN →</span>
         </div>
       </Panel>
       <Panel accent={a} depth={10} title="INVENTORY" className="bottom-[8%] left-[8%] w-[54%]">
@@ -408,11 +408,11 @@ function MaritimeScene({ a }: { a: string }) {
         style={{ transform: "translate3d(calc(var(--mx, 0) * 8px), calc(var(--my, 0) * 8px), 0)" }}
         aria-hidden="true"
       >
-        <div className="absolute inset-0 rounded-full border border-white/10" />
-        <div className="absolute inset-[16%] rounded-full border border-white/8" />
-        <div className="absolute inset-[33%] rounded-full border border-white/8" />
-        <div className="absolute left-1/2 top-0 h-full w-px bg-white/8" />
-        <div className="absolute left-0 top-1/2 h-px w-full bg-white/8" />
+        <div className="absolute inset-0 rounded-full border border-contrast/10" />
+        <div className="absolute inset-[16%] rounded-full border border-contrast/8" />
+        <div className="absolute inset-[33%] rounded-full border border-contrast/8" />
+        <div className="absolute left-1/2 top-0 h-full w-px bg-contrast/8" />
+        <div className="absolute left-0 top-1/2 h-px w-full bg-contrast/8" />
         <div
           className="absolute inset-0 rounded-full"
           style={{ background: `conic-gradient(from 0deg, ${a}55, transparent 25%)`, animation: "spin 6s linear infinite" }}
@@ -469,24 +469,24 @@ function AIScene({ a }: { a: string }) {
     <>
       <Panel accent={a} depth={16} title="AI ASSISTANT" className="left-[5%] top-[7%] w-[48%]">
         <div className="flex flex-col gap-2 text-[12px]">
-          <p className="ml-auto max-w-[80%] rounded-xl rounded-br-sm bg-white/6 px-3 py-2 text-fg-2">Plan my meals for a low-sodium diet.</p>
+          <p className="ml-auto max-w-[80%] rounded-xl rounded-br-sm bg-contrast/6 px-3 py-2 text-fg-2">Knee pain for two weeks — who should I see?</p>
           <div className="flex gap-2">
             <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full" style={{ background: `${a}33`, color: a }}>
               <Glyph d={Icon.spark} size={13} />
             </span>
             <div className="flex-1 rounded-xl rounded-tl-sm border px-3 py-2" style={{ borderColor: `${a}40` }}>
-              <p className="text-fg">Here&apos;s a 7-day plan based on your latest report.</p>
+              <p className="text-fg">Verified orthopaedic doctors near you with slots today.</p>
               <div className="mt-2 flex flex-col gap-1.5" aria-hidden="true">
-                <span className="h-1.5 w-[90%] rounded-full bg-white/10" />
-                <span className="h-1.5 w-[70%] rounded-full bg-white/10" />
+                <span className="h-1.5 w-[90%] rounded-full bg-contrast/10" />
+                <span className="h-1.5 w-[70%] rounded-full bg-contrast/10" />
               </div>
             </div>
           </div>
         </div>
       </Panel>
-      <Panel accent={a} depth={24} title="DIET PLAN" className="right-[6%] top-[6%] w-[28%]">
+      <Panel accent={a} depth={24} title="CONSULTATIONS" className="right-[6%] top-[6%] w-[28%]">
         <svg viewBox="0 0 90 90" className="mx-auto size-[110px] -rotate-90" aria-hidden="true">
-          <circle cx="45" cy="45" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="9" />
+          <circle cx="45" cy="45" r={r} fill="none" style={{ stroke: "rgb(var(--rgb-contrast) / 0.06)" }} strokeWidth="9" />
           {segs.map(([p, col], i) => {
             const el = (
               <circle key={i} cx="45" cy="45" r={r} fill="none" stroke={col} strokeWidth="9" strokeDasharray={`${p * c - 3} ${c}`} strokeDashoffset={-acc * c} />
@@ -496,16 +496,16 @@ function AIScene({ a }: { a: string }) {
           })}
         </svg>
         <div className="mt-2 flex justify-between font-mono text-[9px] text-fg-3">
-          <span style={{ color: a }}>CARBS</span>
-          <span className="text-cyan">PROTEIN</span>
-          <span className="text-electric">FAT</span>
+          <span style={{ color: a }}>CLINIC</span>
+          <span className="text-cyan">VIDEO</span>
+          <span className="text-electric">FOLLOW-UP</span>
         </div>
       </Panel>
-      <Panel accent={a} depth={10} title="HEALTH TRACKING" className="bottom-[9%] left-[6%] w-[40%]">
+      <Panel accent={a} depth={10} title="APPOINTMENTS" className="bottom-[9%] left-[6%] w-[40%]">
         <Spark points={[3, 5, 4, 6, 5, 7, 6, 8, 7, 9]} accent={a} h={56} />
         <div className="mt-2 flex justify-between font-mono text-[9px] text-fg-3">
-          <span>ACTIVITY · 10 DAYS</span>
-          <span style={{ color: a }}>TRENDING UP</span>
+          <span>BOOKINGS · ILLUSTRATIVE</span>
+          <span style={{ color: a }}>ONLINE + CLINIC</span>
         </div>
       </Panel>
       <Panel accent={a} depth={18} title="E-PRESCRIPTION" className="bottom-[30%] right-[5%] w-[34%]">
@@ -519,10 +519,147 @@ function AIScene({ a }: { a: string }) {
             <Glyph d={Icon.ambulance} size={24} />
           </span>
           <div className="flex-1">
-            <p className="font-mono text-[10px] text-fg">AMB-02</p>
-            <p className="font-mono text-[9px] text-fg-3">EN ROUTE · CITY HOSPITAL</p>
+            <p className="font-mono text-[10px] text-fg">AMBULANCE</p>
+            <p className="font-mono text-[9px] text-fg-3">EMERGENCY SERVICES · COMING SOON</p>
           </div>
           <span className="pulse-dot size-2 rounded-full bg-signal" />
+        </div>
+      </Panel>
+    </>
+  );
+}
+
+function FinanceScene({ a }: { a: string }) {
+  const areas = ["Resort / Farm", "G5 House", "Clinic", "DG Shipping"];
+  return (
+    <>
+      <Panel accent={a} depth={12} title="BUSINESS AREAS" className="left-[5%] top-[7%] w-[44%]">
+        {areas.map((b, i) => (
+          <Row key={b} a={String(i + 1).padStart(2, "0")} b={b} c={i === 0 ? "ACTIVE" : undefined} accent={a} strong={i === 0} />
+        ))}
+      </Panel>
+      <Panel accent={a} depth={22} title="INCOME vs EXPENSE" className="right-[5%] top-[6%] w-[40%]">
+        <Spark points={[4, 5, 4.5, 6, 5.5, 7, 6.5, 8]} accent={a} h={52} />
+        <div className="mt-1 opacity-70">
+          <Spark points={[3, 3.5, 4, 3.8, 4.4, 4.2, 5, 4.8]} accent="#a7aebf" h={30} fill={false} />
+        </div>
+        <div className="mt-2 flex justify-between font-mono text-[9px] text-fg-3">
+          <span style={{ color: a }}>● INCOME</span>
+          <span>● EXPENSE</span>
+        </div>
+      </Panel>
+      <Panel accent={a} depth={16} title="TODAY · DAILY ENTRIES" className="bottom-[8%] left-[7%] w-[46%]">
+        <Row a="EXP" b="Supplies" c="CLINIC" accent={a} />
+        <Row a="INC" b="Room booking" c="RESORT" accent="#34d399" />
+        <Row a="EXP" b="Fuel & transport" c="G5 HOUSE" accent={a} />
+      </Panel>
+      <Panel accent={a} depth={26} title="CATEGORIES" className="bottom-[14%] right-[6%] w-[32%]">
+        <Bars values={[5, 8, 4, 6, 3, 7]} accent={a} h={62} />
+        <p className="mt-2 font-mono text-[9px] tracking-[0.12em] text-fg-3">REPORTS · BY CATEGORY</p>
+      </Panel>
+    </>
+  );
+}
+
+function PropertyScene({ a }: { a: string }) {
+  const booked = [2, 5, 9, 12, 13];
+  return (
+    <>
+      <Panel accent={a} depth={12} title="SITE MAP · PLOTS" className="left-[5%] top-[7%] w-[50%]">
+        <div className="grid grid-cols-6 gap-1.5" aria-hidden="true">
+          {Array.from({ length: 18 }).map((_, i) => (
+            <span
+              key={i}
+              className="grid aspect-[4/3] place-items-center rounded-[4px] border font-mono text-[8px]"
+              style={{
+                borderColor: i === 7 ? a : "rgb(var(--rgb-contrast) / 0.1)",
+                background: i === 7 ? `${a}33` : booked.includes(i) ? "rgb(var(--rgb-fg) / 0.12)" : "transparent",
+                color: i === 7 ? a : "var(--color-fg-3)",
+              }}
+            >
+              {String.fromCharCode(65 + Math.floor(i / 6))}
+              {(i % 6) + 1}
+            </span>
+          ))}
+        </div>
+        <div className="mt-3 flex gap-4 font-mono text-[9px] text-fg-3">
+          <span style={{ color: a }}>● SELECTED</span>
+          <span>● BOOKED</span>
+          <span>○ AVAILABLE</span>
+        </div>
+      </Panel>
+      <Panel accent={a} depth={22} title="PLOT DETAILS" className="right-[5%] top-[8%] w-[34%]">
+        <p className="text-sm text-fg">Plot B2 · Sample layout</p>
+        <Row a="FACING" b="East" />
+        <Row a="ROAD" b="Corner plot" />
+        <Row a="STATUS" b="Available" c="OPEN" accent={a} />
+      </Panel>
+      <Panel accent={a} depth={16} title="SEARCH" className="bottom-[10%] left-[7%] w-[40%]">
+        <div className="flex items-center gap-2 rounded-lg border border-contrast/10 px-3 py-2 text-[11px] text-fg-2">
+          <Glyph d={<path d="M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14ZM20 20l-4-4" />} size={13} />
+          Plots near the highway
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {["Available", "Corner", "East facing"].map((f) => (
+            <span key={f} className="rounded-full bg-contrast/5 px-2 py-0.5 font-mono text-[9px] text-fg-2">
+              {f.toUpperCase()}
+            </span>
+          ))}
+        </div>
+      </Panel>
+      <Panel accent={a} depth={26} title="ENQUIRIES" className="bottom-[16%] right-[6%] w-[36%]">
+        <Row a="NEW" b="Site visit request · B2" c="CALL" accent={a} strong />
+        <Row a="02" b="Brochure request · A4" />
+      </Panel>
+    </>
+  );
+}
+
+function QuizScene({ a }: { a: string }) {
+  const options = ["useState", "useEffect", "useMemo", "useRef"];
+  return (
+    <>
+      <Panel accent={a} depth={14} title="QUIZ · QUESTION 04" className="left-[5%] top-[7%] w-[50%]">
+        <p className="text-[12px] text-fg">Which hook runs side effects after render?</p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {options.map((o, i) => (
+            <span
+              key={o}
+              className="rounded-lg border px-2.5 py-2 font-mono text-[10px]"
+              style={{ borderColor: i === 1 ? a : "rgb(var(--rgb-contrast) / 0.1)", background: i === 1 ? `${a}1f` : "transparent", color: i === 1 ? a : "var(--color-fg-2)" }}
+            >
+              {String.fromCharCode(65 + i)} · {o}
+            </span>
+          ))}
+        </div>
+      </Panel>
+      <Panel accent={a} depth={22} title="SCORE" className="right-[6%] top-[6%] w-[28%]">
+        <Bars values={[3, 5, 4, 7, 6, 8]} accent={a} h={60} />
+        <p className="mt-2 font-mono text-[9px] tracking-[0.12em] text-fg-3">SCORE HISTORY</p>
+      </Panel>
+      <Panel accent={a} depth={10} title="LIVE NEWS" className="bottom-[8%] left-[6%] w-[46%]">
+        <Row a="TECH" b="Headline via News API" />
+        <Row a="WORLD" b="Headline via News API" />
+        <Row a="SPORT" b="Headline via News API" c="LIVE" accent={a} />
+      </Panel>
+      <Panel accent={a} depth={18} title="WEATHER" className="bottom-[34%] right-[5%] w-[30%]">
+        <div className="flex items-center gap-3">
+          <span style={{ color: a }}>
+            <Glyph d={<path d="M7 18a4 4 0 0 1-.6-7.95A5.5 5.5 0 0 1 17 9a3.5 3.5 0 0 1 .5 7ZM12 3v1.5M5.6 5.6l1 1M18.4 5.6l-1 1" />} size={26} />
+          </span>
+          <div>
+            <p className="text-[12px] text-fg">Forecast</p>
+            <p className="font-mono text-[9px] text-fg-3">VIA WEATHER API</p>
+          </div>
+        </div>
+      </Panel>
+      <Panel accent={a} depth={12} title="DEBATE ZONE" className="bottom-[8%] right-[7%] w-[34%]">
+        <div className="flex items-center gap-2 font-mono text-[10px]">
+          <span style={{ color: a }}>FOR</span>
+          <span className="h-1 flex-1 overflow-hidden rounded-full bg-contrast/10">
+            <span className="block h-full w-[58%] rounded-full" style={{ background: a }} />
+          </span>
+          <span className="text-fg-3">AGAINST</span>
         </div>
       </Panel>
     </>
@@ -536,10 +673,17 @@ const SCENES = {
   lab: LabScene,
   maritime: MaritimeScene,
   ai: AIScene,
+  finance: FinanceScene,
+  property: PropertyScene,
+  quiz: QuizScene,
 } as const;
 
 /** Per-project illustrated environment with pointer parallax. */
-export default function ProjectEnvironment({ project, className = "" }: { project: Project; className?: string }) {
+export default function ProjectEnvironment({
+  project,
+  className = "",
+  ...rest
+}: { project: Project; className?: string; "data-cursor"?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const Scene = SCENES[project.theme];
@@ -573,9 +717,10 @@ export default function ProjectEnvironment({ project, className = "" }: { projec
       ref={ref}
       onPointerMove={onMove}
       onPointerLeave={onLeave}
+      {...rest}
       role="img"
       aria-label={`${project.title} — illustrated interface: ${project.features.join(", ")}`}
-      className={`relative overflow-hidden bg-[#07090e] ${className}`}
+      className={`relative overflow-hidden bg-stage ${className}`}
     >
       {/* environment ground: tinted glow + grid */}
       <div
@@ -588,7 +733,7 @@ export default function ProjectEnvironment({ project, className = "" }: { projec
       <div
         className="absolute inset-0 opacity-60"
         style={{
-          backgroundImage: "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
+          backgroundImage: "linear-gradient(rgb(var(--rgb-contrast) / 0.04) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--rgb-contrast) / 0.04) 1px, transparent 1px)",
           backgroundSize: "40px 40px",
           maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
           WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",

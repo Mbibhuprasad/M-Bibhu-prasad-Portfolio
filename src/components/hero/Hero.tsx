@@ -8,11 +8,25 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { profile, type Tier } from "@/lib/data";
 import { useIsDesktop, useIsMobile, useReducedMotion } from "@/lib/hooks";
 import { ButtonLink, EXPO, TechBadge } from "@/components/ui";
+import { GitHubIcon, LinkedInIcon } from "@/components/SocialIcons";
+import { useTheme } from "@/lib/theme";
+import HeroAvatar from "./HeroAvatar";
 import type { HeroLayout } from "./HeroScene";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const HeroScene = dynamic(() => import("./HeroScene"), { ssr: false });
+
+/* hero display name — spelling is intentional; the surname is typed in a loop */
+const HERO_NAME = ["Vibhu", "Prasad"];
+const HERO_TYPED = "Mahapatra";
+const FULL_NAME = [...HERO_NAME, HERO_TYPED].join(" ");
+
+/* typing loop timing (ms) */
+const TYPE_MS = 110;
+const DELETE_MS = 65;
+const HOLD_MS = 1900;
+const REST_MS = 600;
 
 type Chip = { name: string; tier: Tier; x: number; y: number; line?: [number, number, number, number] };
 
@@ -38,6 +52,7 @@ export default function Hero() {
   const isDesktop = useIsDesktop();
   const isMobile = useIsMobile();
   const reduced = useReducedMotion();
+  const theme = useTheme();
   const layout: HeroLayout = isDesktop ? "desktop" : isMobile ? "mobile" : "tablet";
 
   const section = useRef<HTMLElement>(null);
@@ -46,6 +61,9 @@ export default function Hero() {
 
   const nameOuter = useRef<HTMLDivElement>(null);
   const nameParallax = useRef<HTMLDivElement>(null);
+  const nameRef = useRef<HTMLHeadingElement>(null);
+  const typedRef = useRef<HTMLSpanElement>(null);
+  const caretRef = useRef<HTMLSpanElement>(null);
   const chipsOuter = useRef<HTMLDivElement>(null);
   const chipsParallax = useRef<HTMLDivElement>(null);
   const intro = useRef<HTMLDivElement>(null);
@@ -76,6 +94,74 @@ export default function Hero() {
     }, section);
     return () => ctx.revert();
   }, []);
+
+  // name entrance: letters fall into place one by one, with a short beat between words
+  useEffect(() => {
+    const el = nameRef.current;
+    if (!el) return;
+    const mm = gsap.matchMedia(el);
+    mm.add(
+      { motion: "(prefers-reduced-motion: no-preference)", reduce: "(prefers-reduced-motion: reduce)" },
+      (ctx) => {
+        const chars = gsap.utils.toArray<HTMLElement>(".hero-char", el);
+        if (ctx.conditions?.reduce) {
+          gsap.set(chars, { opacity: 1 });
+          return;
+        }
+        gsap.fromTo(
+          chars,
+          { opacity: 0, yPercent: -55, rotation: -9, transformOrigin: "50% 100%" },
+          {
+            opacity: 1,
+            yPercent: 0,
+            rotation: 0,
+            duration: 1.1,
+            ease: "expo.out",
+            delay: 0.25,
+            stagger: (i, target: HTMLElement) => i * 0.045 + Number(target.dataset.word) * 0.14,
+          }
+        );
+      }
+    );
+    return () => mm.revert();
+  }, []);
+
+  // surname typing loop — writes straight to the DOM, no React state per keystroke
+  useEffect(() => {
+    const typed = typedRef.current;
+    const caret = caretRef.current;
+    if (!typed || !caret) return;
+    if (reduced) {
+      typed.textContent = HERO_TYPED;
+      caret.dataset.state = "off";
+      return;
+    }
+
+    let n = 0;
+    let dir: 1 | -1 = 1;
+    let timer = 0;
+    const step = () => {
+      n += dir;
+      typed.textContent = HERO_TYPED.slice(0, n);
+      let wait = dir === 1 ? TYPE_MS + (Math.random() - 0.5) * 40 : DELETE_MS;
+      if (n >= HERO_TYPED.length) {
+        dir = -1;
+        wait = HOLD_MS;
+      } else if (n <= 0) {
+        dir = 1;
+        wait = REST_MS;
+      }
+      // caret stays solid while keys are moving, softly pulses while resting
+      caret.dataset.state = wait >= REST_MS ? "idle" : "typing";
+      timer = window.setTimeout(step, wait);
+    };
+
+    typed.textContent = "";
+    caret.dataset.state = "idle";
+    // begin once "Vibhu Prasad" has settled from its entrance
+    timer = window.setTimeout(step, 1500);
+    return () => window.clearTimeout(timer);
+  }, [reduced]);
 
   // pointer: feeds the 3D scene and drives DOM parallax layers
   useEffect(() => {
@@ -137,36 +223,28 @@ export default function Hero() {
 
         {/* display name — sits behind the core */}
         <div className="container-x relative z-10 pt-24 lg:pt-[112px]">
-          <motion.p
-            className="label"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.2 }}
-          >
-            [ 00 ]&nbsp; PORTFOLIO — 2026 <span className="hidden sm:inline">&nbsp;/&nbsp; SOFTWARE ENGINEERING</span>
-          </motion.p>
           <div ref={nameOuter} className="mt-3 lg:-ml-2">
             <div ref={nameParallax} className="will-change-transform">
-              <h1 className="font-display text-[clamp(76px,22vw,196px)] font-semibold leading-[0.84] tracking-[-0.045em] lg:text-[clamp(120px,13.6vw,196px)]">
-                <span className="block overflow-hidden pb-[0.04em]">
-                  <motion.span
-                    className="block"
-                    initial={{ y: "105%" }}
-                    animate={{ y: "0%" }}
-                    transition={{ duration: 1.2, ease: EXPO, delay: 0.15 }}
-                  >
-                    BIBHU
-                  </motion.span>
+              <h1
+                ref={nameRef}
+                className="font-sans text-[clamp(40px,12.5vw,84px)] font-semibold leading-[1.02] tracking-[-0.04em] lg:text-[clamp(64px,min(6.4vw,10.5svh),100px)]"
+              >
+                <span className="sr-only">{FULL_NAME}</span>
+                <span aria-hidden="true" className="block whitespace-nowrap">
+                  {HERO_NAME.map((word, w) => (
+                    <span key={word} className="inline-block">
+                      {word.split("").map((ch, i) => (
+                        <span key={i} className="hero-char inline-block" data-word={w}>
+                          {ch}
+                        </span>
+                      ))}
+                      {w < HERO_NAME.length - 1 && <span className="inline-block w-[0.26em]" />}
+                    </span>
+                  ))}
                 </span>
-                <span className="block overflow-hidden pb-[0.04em]">
-                  <motion.span
-                    className="text-outline block"
-                    initial={{ y: "105%" }}
-                    animate={{ y: "0%" }}
-                    transition={{ duration: 1.2, ease: EXPO, delay: 0.25 }}
-                  >
-                    PRASAD
-                  </motion.span>
+                <span aria-hidden="true" className="block whitespace-nowrap text-fg-2">
+                  <span ref={typedRef}>{HERO_TYPED}</span>
+                  <span ref={caretRef} className="hero-caret" data-state="off" />
                 </span>
               </h1>
             </div>
@@ -175,12 +253,14 @@ export default function Hero() {
 
         {/* 3D digital core */}
         <motion.div
+          role="img"
+          aria-label={`Portrait of ${FULL_NAME}`}
           className="pointer-events-none absolute inset-0 z-20"
           initial={{ opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.8, ease: EXPO, delay: 0.3 }}
         >
-          <HeroScene progress={progress} pointer={pointer} layout={layout} reduced={reduced} />
+          <HeroScene progress={progress} pointer={pointer} layout={layout} reduced={reduced} theme={theme} />
         </motion.div>
 
         {/* floating technology chips */}
@@ -240,10 +320,30 @@ export default function Hero() {
             transition={{ duration: 1.1, ease: EXPO, delay: 0.55 }}
           >
             <span className="label hidden lg:block">— ROLE</span>
-            <h2 className="font-display text-[36px] font-medium leading-none tracking-[-0.03em] lg:text-[52px]">
-              <span className="block">FULL-STACK</span>
-              <span className="text-aura block">DEVELOPER</span>
-            </h2>
+            <div className="flex items-end justify-between gap-4">
+              <h2 className="font-display text-[36px] font-medium leading-none tracking-[-0.03em] lg:text-[52px]">
+                <span className="block">FULL-STACK</span>
+                <span className="text-aura block">DEVELOPER</span>
+              </h2>
+              <ul className="flex items-center gap-2" aria-label="Social profiles">
+                {[
+                  { href: profile.github, label: "GitHub profile (opens in a new tab)", Icon: GitHubIcon },
+                  { href: profile.linkedin, label: "LinkedIn profile (opens in a new tab)", Icon: LinkedInIcon },
+                ].map(({ href, label, Icon }) => (
+                  <li key={label}>
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={label}
+                      className="glass grid size-10 place-items-center rounded-full text-fg-2 transition-colors duration-300 hover:border-accent/50! hover:text-fg"
+                    >
+                      <Icon size={15} />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
             <p className="max-w-[460px] text-[15px] leading-relaxed text-fg-2 lg:text-[17px]">
               Building scalable web applications, SaaS platforms, healthcare systems, business software and modern digital experiences.
             </p>
@@ -260,6 +360,11 @@ export default function Hero() {
 
         {/* HUD: scene rail + readouts */}
         <div ref={hud} className="z-30">
+          {/* identity marker — top-right, clear of the fixed nav */}
+          <div className="container-x pointer-events-none absolute inset-x-0 top-[80px] z-30 flex justify-end md:top-[92px] lg:top-[98px]">
+            <HeroAvatar className="pointer-events-auto" />
+          </div>
+
           <div
             aria-hidden="true"
             className="absolute right-12 top-1/2 z-30 hidden -translate-y-1/2 flex-col items-end gap-2.5 font-mono text-[10px] tracking-[0.14em] text-fg-3 lg:flex"
@@ -272,13 +377,11 @@ export default function Hero() {
             <span>10</span>
           </div>
 
-          <div className="container-x absolute inset-x-0 bottom-9 z-30 hidden items-end justify-between font-mono text-[11px] tracking-[0.14em] text-fg-3 lg:flex">
-            <span>BHUBANESWAR, IN &nbsp;·&nbsp; 20.29° N / 85.82° E</span>
+          <div className="container-x absolute inset-x-0 bottom-9 z-30 hidden items-end justify-center font-mono text-[11px] tracking-[0.14em] text-fg-3 lg:flex">
             <a href="#about" className="flex flex-col items-center gap-2.5 text-fg transition-opacity hover:opacity-80">
               <span className="relative h-9 w-px overflow-hidden bg-gradient-to-b from-transparent to-electric" aria-hidden="true" />
               SCROLL TO ENTER ↓
             </a>
-            <span>SCENE 01 — ENTRY</span>
           </div>
         </div>
 

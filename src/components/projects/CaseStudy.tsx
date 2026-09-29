@@ -37,18 +37,22 @@ function Block({ id, index, title, children }: { id: string; index: number; titl
 export default function CaseStudy({ project, next }: { project: Project; next: Project }) {
   const [current, setCurrent] = useState<string>("problem");
   const cs = project.caseStudy;
+  const tech = [...project.stack, ...cs.services.filter((s) => !project.stack.includes(s))];
+  // architecture needs a confirmed data layer; technology needs a confirmed stack
+  const sections = SECTIONS.filter((s) => (s.id !== "architecture" || cs.database) && (s.id !== "technology" || tech.length > 0));
+  const idx = (id: (typeof SECTIONS)[number]["id"]) => sections.findIndex((s) => s.id === id);
 
   useEffect(() => {
     const io = new IntersectionObserver(
       (entries) => entries.forEach((e) => e.isIntersecting && setCurrent(e.target.id)),
       { rootMargin: "-40% 0px -55% 0px" }
     );
-    SECTIONS.forEach((s) => {
+    sections.forEach((s) => {
       const el = document.getElementById(s.id);
       if (el) io.observe(el);
     });
     return () => io.disconnect();
-  }, []);
+  }, [project.slug]);
 
   return (
     <article className="relative pb-24">
@@ -78,8 +82,14 @@ export default function CaseStudy({ project, next }: { project: Project; next: P
             </div>
             <div>
               <dt className="text-fg-3">DATABASE</dt>
-              <dd className="mt-2 text-fg">{cs.database.toUpperCase()}</dd>
+              <dd className="mt-2 text-fg">{cs.database ? cs.database.toUpperCase() : "—"}</dd>
             </div>
+            {project.client && (
+              <div className="col-span-2">
+                <dt className="text-fg-3">CLIENT</dt>
+                <dd className="mt-2 text-fg">{project.client.toUpperCase()}</dd>
+              </div>
+            )}
           </dl>
         </div>
         <div className="mt-8 flex flex-wrap gap-2">
@@ -98,14 +108,14 @@ export default function CaseStudy({ project, next }: { project: Project; next: P
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1.2, ease: EXPO }}
       >
-        <ProjectEnvironment project={project} className="h-[320px] rounded-[28px] border border-line sm:h-[480px] lg:h-[640px]" />
+        <ProjectEnvironment project={project} data-cursor="explore" className="h-[320px] rounded-[28px] border border-line sm:h-[480px] lg:h-[640px]" />
       </motion.div>
 
       {/* body */}
       <div className="container-x mt-16 grid gap-10 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-20">
         <nav aria-label="Case study sections" className="hidden lg:block">
           <ul className="sticky top-32 flex flex-col gap-3">
-            {SECTIONS.map((s, i) => (
+            {sections.map((s, i) => (
               <li key={s.id}>
                 <a
                   href={`#${s.id}`}
@@ -123,29 +133,31 @@ export default function CaseStudy({ project, next }: { project: Project; next: P
         </nav>
 
         <div className="max-w-4xl">
-          <Block id="problem" index={0} title="Problem">
+          <Block id="problem" index={idx("problem")} title="Problem">
             <FadeIn>
               <p className="font-display text-2xl leading-snug tracking-[-0.01em] md:text-[32px]">{cs.problem}</p>
             </FadeIn>
           </Block>
 
-          <Block id="solution" index={1} title="Solution">
+          <Block id="solution" index={idx("solution")} title="Solution">
             <FadeIn>
               <p className="text-lg leading-relaxed text-fg-2 md:text-xl">{cs.solution}</p>
             </FadeIn>
           </Block>
 
-          <Block id="architecture" index={2} title="Architecture">
-            <div className="overflow-hidden rounded-[20px] border border-line bg-ink p-4 md:p-8">
-              <CaseArchitecture project={project} />
-            </div>
-            <p className="mt-4 font-mono text-[11px] tracking-[0.12em] text-fg-3">
-              <span className="text-electric">●</span> REQUEST &nbsp;&nbsp; <span className="text-cyan">●</span> RESPONSE &nbsp;&nbsp;{" "}
-              <span className="text-violet">●</span> SERVICE CALL
-            </p>
-          </Block>
+          {cs.database && (
+            <Block id="architecture" index={idx("architecture")} title="Architecture">
+              <div className="overflow-hidden rounded-[20px] border border-line bg-ink p-4 md:p-8">
+                <CaseArchitecture project={project} database={cs.database} />
+              </div>
+              <p className="mt-4 font-mono text-[11px] tracking-[0.12em] text-fg-3">
+                <span className="text-electric">●</span> REQUEST &nbsp;&nbsp; <span className="text-cyan">●</span> RESPONSE &nbsp;&nbsp;{" "}
+                <span className="text-violet">●</span> SERVICE CALL
+              </p>
+            </Block>
+          )}
 
-          <Block id="features" index={3} title="Features">
+          <Block id="features" index={idx("features")} title="Features">
             <ul className="grid gap-px overflow-hidden rounded-[20px] border border-line bg-line sm:grid-cols-2">
               {project.features.map((f, i) => (
                 <li key={f} className="flex items-center gap-4 bg-ink p-5">
@@ -154,19 +166,38 @@ export default function CaseStudy({ project, next }: { project: Project; next: P
                 </li>
               ))}
             </ul>
+            {project.modules && (
+              <div className="mt-10 grid gap-8 sm:grid-cols-2">
+                {project.modules.map((m) => (
+                  <div key={m.label}>
+                    <div className="label mb-4 flex items-center gap-3">
+                      <span className="h-px w-4" style={{ background: project.accent }} aria-hidden="true" />
+                      {m.label}
+                    </div>
+                    <ul className="flex flex-col gap-2 text-[15px] text-fg-2">
+                      {m.items.map((it) => (
+                        <li key={it}>{it}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
           </Block>
 
-          <Block id="technology" index={4} title="Technology">
-            <div className="flex flex-wrap gap-2">
-              {[...project.stack, ...cs.services.filter((s) => !project.stack.includes(s))].map((s, i) => (
-                <TechBadge key={s} tier={/AI/.test(s) ? "ai" : i < 3 ? "primary" : "secondary"}>
-                  {s}
-                </TechBadge>
-              ))}
-            </div>
-          </Block>
+          {tech.length > 0 && (
+            <Block id="technology" index={idx("technology")} title="Technology">
+              <div className="flex flex-wrap gap-2">
+                {tech.map((s, i) => (
+                  <TechBadge key={s} tier={/AI/.test(s) ? "ai" : i < 3 ? "primary" : "secondary"}>
+                    {s}
+                  </TechBadge>
+                ))}
+              </div>
+            </Block>
+          )}
 
-          <Block id="challenges" index={5} title="Challenges">
+          <Block id="challenges" index={idx("challenges")} title="Challenges">
             <ul className="flex flex-col">
               {cs.challenges.map((c, i) => (
                 <FadeIn key={c} delay={i * 0.06}>
@@ -179,7 +210,7 @@ export default function CaseStudy({ project, next }: { project: Project; next: P
             </ul>
           </Block>
 
-          <Block id="contribution" index={6} title="My Contribution">
+          <Block id="contribution" index={idx("contribution")} title="My Contribution">
             <ul className="grid gap-3 sm:grid-cols-2">
               {cs.contribution.map((c) => (
                 <li key={c} className="glass rounded-2xl p-5 text-[15px] text-fg-2">
@@ -190,7 +221,7 @@ export default function CaseStudy({ project, next }: { project: Project; next: P
             </ul>
           </Block>
 
-          <Block id="screenshots" index={7} title="Screenshots">
+          <Block id="screenshots" index={idx("screenshots")} title="Screenshots">
             {/* TODO: replace placeholders with real screenshots in /public/work/ */}
             <div className="grid gap-4 sm:grid-cols-2">
               {[1, 2, 3].map((n) => (
@@ -202,15 +233,30 @@ export default function CaseStudy({ project, next }: { project: Project; next: P
                 </div>
               ))}
             </div>
-            <div className="mt-10 flex flex-wrap gap-3">
-              {/* TODO: add real Live Demo and GitHub URLs */}
-              <a href="#" className="inline-flex h-13 items-center gap-2.5 rounded-full bg-fg px-6 font-mono text-xs font-medium tracking-[0.14em] text-void hover:bg-white">
-                LIVE DEMO ↗
-              </a>
-              <a href="#" className="inline-flex h-13 items-center gap-2.5 rounded-full border border-line-strong px-6 font-mono text-xs tracking-[0.14em] hover:bg-white/5">
-                GITHUB ↗
-              </a>
-            </div>
+            {(project.live || project.repo) && (
+              <div className="mt-10 flex flex-wrap gap-3">
+                {project.live && (
+                  <a
+                    href={project.live}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-13 items-center gap-2.5 rounded-full bg-fg px-6 font-mono text-xs font-medium tracking-[0.14em] text-void hover:bg-contrast"
+                  >
+                    LIVE PROJECT ↗
+                  </a>
+                )}
+                {project.repo && (
+                  <a
+                    href={project.repo}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-13 items-center gap-2.5 rounded-full border border-line-strong px-6 font-mono text-xs tracking-[0.14em] hover:bg-contrast/5"
+                  >
+                    GITHUB ↗
+                  </a>
+                )}
+              </div>
+            )}
           </Block>
         </div>
       </div>
@@ -218,6 +264,7 @@ export default function CaseStudy({ project, next }: { project: Project; next: P
       {/* next project */}
       <Link
         href={`/work/${next.slug}`}
+        data-cursor="view"
         className="group container-x mt-16 block border-t border-line pt-16"
       >
         <span className="label">Next project — {next.number}</span>

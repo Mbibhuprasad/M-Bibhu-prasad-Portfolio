@@ -101,7 +101,7 @@ export default function Architecture() {
   const dim = (id: string) => (hovered && hovered !== id ? "opacity-40" : "opacity-100");
 
   return (
-    <section ref={root} id="architecture" className="relative overflow-hidden py-32 md:py-40">
+    <section ref={root} id="architecture" className="relative overflow-hidden py-20 md:py-28">
       <style>{`
         @keyframes arch-down { 0% { transform: translateY(-4px); opacity: 0 } 15% { opacity: 1 } 85% { opacity: 1 } 100% { transform: translateY(62px); opacity: 0 } }
         @keyframes arch-up { 0% { transform: translateY(62px); opacity: 0 } 15% { opacity: 1 } 85% { opacity: 1 } 100% { transform: translateY(-4px); opacity: 0 } }
@@ -127,7 +127,7 @@ export default function Architecture() {
           {/* left: heading + legend */}
           <div className="lg:col-span-4">
             <div className="lg:sticky lg:top-32">
-              <SectionLabel index="05">HOW I BUILD</SectionLabel>
+              <SectionLabel index="08">HOW I BUILD</SectionLabel>
               <RevealLines
                 className="mt-8 font-display text-[56px] font-medium leading-[0.95] tracking-[-0.035em] md:text-[80px]"
                 lines={["HOW I", <span key="b" className="text-outline">BUILD</span>]}
@@ -236,7 +236,7 @@ export default function Architecture() {
                     pathLength={1}
                     strokeDasharray="1"
                     d="M200 0 V8 M50 8 H350 M50 8 V24 M150 8 V24 M250 8 V24 M350 8 V24"
-                    stroke="rgba(242,244,248,0.2)"
+                    style={{ stroke: "rgb(var(--rgb-fg) / 0.2)" }}
                     strokeWidth="1"
                   />
                 </svg>

@@ -14,7 +14,9 @@ function EntryCard({ entry }: { entry: Entry }) {
   return (
     <div className="rounded-2xl border border-line bg-ink/80 p-6 backdrop-blur">
       <div className="flex items-center justify-between gap-4 font-mono text-[11px] tracking-[0.14em] text-fg-3">
-        <span>{entry.period.toUpperCase()}</span>
+        <span>
+          {entry.period.toUpperCase()} · {entry.type.toUpperCase()}
+        </span>
         {entry.present && (
           <span className="flex items-center gap-2 text-signal">
             <span className="pulse-dot size-1.5 rounded-full bg-signal" /> NOW
@@ -23,6 +25,14 @@ function EntryCard({ entry }: { entry: Entry }) {
       </div>
       <h3 className="mt-4 font-display text-[28px] font-medium uppercase leading-[1.05] tracking-[-0.02em]">{entry.role}</h3>
       <p className="mt-2 text-fg-2">{entry.org}</p>
+      <ul className="mt-4 space-y-1.5 text-sm text-fg-2">
+        {entry.highlights.map((h) => (
+          <li key={h} className="flex gap-2.5">
+            <span className="mt-[9px] h-px w-2.5 shrink-0 bg-accent/70" aria-hidden="true" />
+            {h}
+          </li>
+        ))}
+      </ul>
       <ul className="mt-5 flex flex-wrap gap-2">
         {entry.tags.map((t) => (
           <li key={t} className="rounded-md border border-line px-2 py-1 font-mono text-[11px] tracking-[0.06em] text-fg-2">

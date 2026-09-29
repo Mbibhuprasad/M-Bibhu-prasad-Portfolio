@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { motion, useInView } from "framer-motion";
+import { gsap } from "gsap";
 import type { Tier } from "@/lib/data";
 
 export const EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -10,9 +11,9 @@ export const CINEMA: [number, number, number, number] = [0.65, 0, 0.35, 1];
 export function Logo({ size = 24 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M8 5 3 12l5 7" stroke="#F2F4F8" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="m16 5 5 7-5 7" stroke="#F2F4F8" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="12" cy="12" r="2.2" fill="#22D3EE" />
+      <path d="M8 5 3 12l5 7" className="stroke-fg" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="m16 5 5 7-5 7" className="stroke-fg" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="2.2" className="fill-cyan" />
     </svg>
   );
 }
@@ -36,12 +37,13 @@ const tierDot: Record<Tier, string> = {
   primary: "bg-electric shadow-[0_0_10px_#3d7bff]",
   secondary: "bg-cyan shadow-[0_0_10px_#22d3ee]",
   ai: "bg-violet shadow-[0_0_10px_#8b5cf6]",
+  exploring: "bg-accent shadow-[0_0_10px_var(--color-accent)]",
 };
 
 export function TechBadge({ children, tier = "primary", className = "" }: { children: React.ReactNode; tier?: Tier; className?: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-2 rounded-full border border-line bg-ink/70 py-1.5 pl-2.5 pr-3 font-mono text-xs tracking-[0.04em] text-[#d7dbe5] backdrop-blur ${className}`}
+      className={`inline-flex items-center gap-2 rounded-full border border-line bg-ink/70 py-1.5 pl-2.5 pr-3 font-mono text-xs tracking-[0.04em] text-chip backdrop-blur ${className}`}
     >
       <span className={`size-1.5 rounded-full ${tierDot[tier]}`} aria-hidden="true" />
       {children}
@@ -124,6 +126,80 @@ export function Magnetic({ children, className = "" }: { children: React.ReactNo
   );
 }
 
+/**
+ * Floating card: follows the pointer with a small shift + 3D tilt and a soft blue/orange glow,
+ * then eases back on leave. Mouse/trackpad only; off for touch and reduced motion.
+ * The outer box stays still (stable hit area); only the inner layer moves.
+ */
+export function FloatCard({ children, className = "", glowClassName = "rounded-2xl" }: { children: React.ReactNode; className?: string; glowClassName?: string }) {
+  const outer = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
+  const glow = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const area = outer.current;
+    const card = inner.current;
+    if (!area || !card) return;
+    const mm = gsap.matchMedia();
+    mm.add("(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)", () => {
+      gsap.set(card, { transformPerspective: 900 });
+      const ease = { duration: 0.8, ease: "power3.out" };
+      const to = {
+        x: gsap.quickTo(card, "x", ease),
+        y: gsap.quickTo(card, "y", ease),
+        z: gsap.quickTo(card, "z", ease),
+        rx: gsap.quickTo(card, "rotationX", ease),
+        ry: gsap.quickTo(card, "rotationY", ease),
+      };
+      const onMove = (e: PointerEvent) => {
+        const r = area.getBoundingClientRect();
+        const nx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
+        const ny = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height) * 2 - 1));
+        to.x(nx * 12);
+        to.y(ny * 12);
+        to.z(18);
+        to.ry(nx * 4);
+        to.rx(-ny * 4);
+      };
+      const onEnter = () => gsap.to(glow.current, { opacity: 1, duration: 0.6, ease: "power3.out", overwrite: true });
+      const onLeave = () => {
+        to.x(0);
+        to.y(0);
+        to.z(0);
+        to.rx(0);
+        to.ry(0);
+        gsap.to(glow.current, { opacity: 0, duration: 0.9, ease: "power3.out", overwrite: true });
+      };
+      area.addEventListener("pointerenter", onEnter);
+      area.addEventListener("pointermove", onMove);
+      area.addEventListener("pointerleave", onLeave);
+      return () => {
+        area.removeEventListener("pointerenter", onEnter);
+        area.removeEventListener("pointermove", onMove);
+        area.removeEventListener("pointerleave", onLeave);
+      };
+    });
+    return () => mm.revert();
+  }, []);
+
+  return (
+    <div ref={outer} className={className}>
+      <div ref={inner} className="relative will-change-transform">
+        <span
+          ref={glow}
+          aria-hidden="true"
+          className={`pointer-events-none absolute -inset-px opacity-0 ${glowClassName}`}
+          style={{
+            boxShadow:
+              "0 0 0 1px rgb(61 123 255 / 0.3), 0 24px 70px -24px rgb(61 123 255 / 0.45), 14px 18px 46px -30px color-mix(in srgb, var(--color-accent) 55%, transparent)",
+          }}
+        />
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function ButtonLink({
   href,
   children,
@@ -143,8 +219,8 @@ export function ButtonLink({
     "inline-flex h-13 items-center justify-center gap-2.5 rounded-full px-6 font-mono text-xs font-medium tracking-[0.14em] transition-colors duration-300";
   const styles =
     variant === "primary"
-      ? "bg-fg text-void hover:bg-white"
-      : "border border-line-strong text-fg hover:border-fg/40 hover:bg-white/5";
+      ? "bg-fg text-void hover:bg-contrast"
+      : "border border-line-strong text-fg hover:border-fg/40 hover:bg-contrast/5";
   return (
     <a
       href={href}

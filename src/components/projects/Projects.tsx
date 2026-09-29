@@ -1,57 +1,55 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { motion, useMotionValue, useSpring } from "framer-motion";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { A11y, Keyboard, Mousewheel } from "swiper/modules";
-import type { Swiper as SwiperType } from "swiper";
-import "swiper/css";
+import { motion, useInView } from "framer-motion";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 import { projects, type Project } from "@/lib/data";
 import { EXPO, RevealLines, SectionLabel, TechBadge } from "@/components/ui";
+import { useReducedMotion } from "@/lib/hooks";
 import ProjectEnvironment from "./ProjectEnvironment";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-function Slide({ project, active }: { project: Project; active: boolean }) {
+/** Desktop + motion allowed: the section pins and vertical scroll drives the track sideways. */
+const PINNED_QUERY = "(min-width: 1024px) and (prefers-reduced-motion: no-preference)";
+
+function Card({ project }: { project: Project }) {
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { amount: 0.35 });
+  const reduced = useReducedMotion();
+  const active = inView || reduced;
   const words = project.title.split(" ");
   let charIndex = 0;
+
   return (
-    <article className="relative grid h-full overflow-hidden rounded-[28px] border border-line bg-ink lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+    <article
+      ref={ref}
+      className="project-card relative flex w-[86vw] shrink-0 snap-start flex-col overflow-hidden rounded-[24px] border border-line bg-ink sm:w-[62vw] md:w-[46vw] lg:w-[clamp(400px,38vw,580px)] lg:motion-safe:h-[min(74svh,700px)]"
+    >
       <div
-        className="pointer-events-none absolute -left-40 -top-40 size-[520px] rounded-full opacity-40 blur-3xl"
+        className="pointer-events-none absolute -left-32 -top-32 size-[380px] rounded-full opacity-40 blur-3xl"
         style={{ background: `radial-gradient(circle, ${project.accent}33, transparent 70%)` }}
         aria-hidden="true"
       />
 
-      {/* environment (top on mobile, right on desktop) */}
-      <motion.div
-        className="relative order-1 h-[300px] overflow-hidden border-b border-line sm:h-[380px] lg:order-2 lg:h-auto lg:border-b-0 lg:border-l"
-        animate={{ scale: active ? 1 : 1.08, opacity: active ? 1 : 0.35 }}
-        transition={{ duration: 1.1, ease: EXPO }}
-      >
-        <ProjectEnvironment project={project} className="absolute inset-0" />
-      </motion.div>
-
-      {/* content */}
-      <div className="relative order-2 flex flex-col p-6 sm:p-8 lg:order-1 lg:p-12">
-        <div className="flex items-center justify-between">
-          <span className="block overflow-hidden font-display text-[88px] font-semibold leading-[0.85] tracking-[-0.05em] text-outline lg:text-[140px]">
-            <motion.span
-              className="block"
-              animate={{ y: active ? "0%" : "100%" }}
-              transition={{ duration: 0.8, ease: EXPO }}
-            >
+      <div className="relative flex flex-col px-5 pt-5 sm:px-6 sm:pt-6 lg:px-7 lg:pt-7">
+        <div className="flex items-center justify-between gap-4">
+          <span className="block overflow-hidden font-display text-[56px] font-semibold leading-[0.85] tracking-[-0.05em] text-outline lg:text-[72px]">
+            <motion.span className="block" animate={{ y: active ? "0%" : "100%" }} transition={{ duration: 0.8, ease: EXPO }}>
               {project.number}
             </motion.span>
           </span>
-          <span className="rounded-full border border-line px-3 py-1.5 font-mono text-[10px] tracking-[0.16em] text-fg-2">
+          <span className="rounded-full border border-line px-3 py-1.5 text-right font-mono text-[10px] tracking-[0.16em] text-fg-2">
             {project.category.toUpperCase()}
           </span>
         </div>
 
-        <h3 className="mt-6 font-display text-[32px] font-medium leading-[0.98] tracking-[-0.03em] sm:text-[40px] lg:mt-10 lg:text-[52px]" aria-label={project.title}>
+        <h3 className="mt-4 font-display text-[26px] font-medium leading-[0.98] tracking-[-0.03em] lg:text-[32px]" aria-label={project.title}>
           {words.map((w, wi) => (
             <span key={wi} className="mr-[0.25em] inline-block whitespace-nowrap" aria-hidden="true">
               {w.split("").map((ch) => {
@@ -71,35 +69,42 @@ function Slide({ project, active }: { project: Project; active: boolean }) {
           ))}
         </h3>
 
-        <p className="mt-4 max-w-md text-[15px] leading-relaxed text-fg-2 lg:text-base">{project.summary}</p>
+        <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-fg-2 lg:text-[15px]">{project.summary}</p>
 
-        <ul className="mt-6 hidden flex-wrap gap-x-5 gap-y-2 sm:flex">
-          {project.features.map((f) => (
-            <li key={f} className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-fg-2">
-              <span className="size-1 rounded-full" style={{ background: project.accent }} aria-hidden="true" />
-              {f}
-            </li>
-          ))}
-        </ul>
+        {project.stack.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {project.stack.slice(0, 5).map((s, i) => (
+              <motion.span
+                key={s}
+                animate={{ y: active ? 0 : 12, opacity: active ? 1 : 0 }}
+                transition={{ duration: 0.6, ease: EXPO, delay: active ? 0.35 + i * 0.04 : 0 }}
+              >
+                <TechBadge tier={/AI/.test(s) ? "ai" : i < 3 ? "primary" : "secondary"}>{s}</TechBadge>
+              </motion.span>
+            ))}
+            {project.stack.length > 5 && (
+              <span className="inline-flex items-center px-1.5 font-mono text-xs text-fg-3">+{project.stack.length - 5}</span>
+            )}
+          </div>
+        )}
+      </div>
 
-        <div className="mt-6 flex flex-wrap gap-2 lg:mt-auto lg:pt-8">
-          {project.stack.map((s, i) => (
-            <motion.span
-              key={s}
-              animate={{ y: active ? 0 : 12, opacity: active ? 1 : 0 }}
-              transition={{ duration: 0.6, ease: EXPO, delay: active ? 0.35 + i * 0.04 : 0 }}
-            >
-              <TechBadge tier={/AI/.test(s) ? "ai" : i < 3 ? "primary" : "secondary"}>{s}</TechBadge>
-            </motion.span>
-          ))}
-        </div>
+      {/* environment */}
+      <motion.div
+        className="relative mx-5 mt-5 h-[210px] overflow-hidden rounded-2xl border border-line sm:mx-6 sm:h-[240px] lg:mx-7 lg:h-[260px] lg:motion-safe:h-auto lg:motion-safe:min-h-[150px] lg:motion-safe:flex-1"
+        animate={{ scale: active ? 1 : 1.06, opacity: active ? 1 : 0.35 }}
+        transition={{ duration: 1.1, ease: EXPO }}
+      >
+        <ProjectEnvironment project={project} className="h-full w-full" />
+      </motion.div>
 
+      <div className="relative px-5 pb-5 pt-5 sm:px-6 sm:pb-6 lg:px-7 lg:pb-7">
         <Link
           href={`/work/${project.slug}`}
           data-cursor="link"
-          className="group mt-8 inline-flex h-13 w-fit items-center gap-3 rounded-full bg-fg px-6 font-mono text-xs font-medium tracking-[0.14em] text-void transition-colors hover:bg-white"
+          className="group inline-flex h-11 w-fit items-center gap-3 rounded-full bg-fg px-5 font-mono text-xs font-medium tracking-[0.14em] text-void transition-colors hover:bg-contrast"
         >
-          VIEW CASE STUDY
+          VIEW PROJECT
           <span className="transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-x-1" aria-hidden="true">
             →
           </span>
@@ -109,143 +114,172 @@ function Slide({ project, active }: { project: Project; active: boolean }) {
   );
 }
 
+function Heading({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className="flex flex-col gap-6">
+      <SectionLabel index="05">SELECTED WORK</SectionLabel>
+      <RevealLines
+        lines={["SYSTEMS", "IN PRODUCTION"]}
+        className={`font-display font-medium leading-[0.92] tracking-[-0.04em] ${
+          compact ? "text-[clamp(52px,5vw,80px)]" : "text-[56px] md:text-[80px] xl:text-[96px]"
+        }`}
+        lineClassName={(i) => (i === 1 ? "text-outline" : "")}
+      />
+    </div>
+  );
+}
+
 export default function Projects() {
+  const root = useRef<HTMLElement>(null);
+  const pin = useRef<HTMLDivElement>(null);
+  const track = useRef<HTMLDivElement>(null);
+  const trigger = useRef<ScrollTrigger | null>(null);
+  const activeRef = useRef(0);
   const [active, setActive] = useState(0);
-  const swiperRef = useRef<SwiperType | null>(null);
-
-  // "DRAG" disc cursor (desktop, fine pointer only)
-  const [cursor, setCursor] = useState<"hidden" | "drag" | "link">("hidden");
-  const mx = useMotionValue(0);
-  const my = useMotionValue(0);
-  const sx = useSpring(mx, { stiffness: 350, damping: 35, mass: 0.6 });
-  const sy = useSpring(my, { stiffness: 350, damping: 35, mass: 0.6 });
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (e.pointerType !== "mouse") return;
-    mx.set(e.clientX);
-    my.set(e.clientY);
-    const overLink = (e.target as HTMLElement).closest("a,button");
-    setCursor(overLink ? "link" : "drag");
-  };
-
   const total = projects.length;
 
+  const setIndex = (i: number) => {
+    if (i === activeRef.current) return;
+    activeRef.current = i;
+    setActive(i);
+  };
+
+  useEffect(() => {
+    const el = root.current;
+    const trackEl = track.current;
+    if (!el || !trackEl) return;
+    const mm = gsap.matchMedia(el);
+
+    // pinned: vertical scroll → horizontal track, then the page scrolls on
+    mm.add(PINNED_QUERY, () => {
+      const dist = () => Math.max(0, trackEl.scrollWidth - window.innerWidth);
+      const tween = gsap.to(trackEl, {
+        x: () => -dist(),
+        ease: "none",
+        scrollTrigger: {
+          trigger: pin.current,
+          pin: true,
+          scrub: 1,
+          start: "top top",
+          end: () => `+=${dist()}`,
+          invalidateOnRefresh: true,
+          onUpdate: (s) => setIndex(Math.round(s.progress * (total - 1))),
+        },
+      });
+      trigger.current = tween.scrollTrigger ?? null;
+      return () => {
+        trigger.current = null;
+      };
+    });
+
+    // swipe (mobile, tablet, reduced motion): native horizontal touch scroll inside the track
+    mm.add(`not all and ${PINNED_QUERY}`, () => {
+      let raf = 0;
+      const onScroll = () => {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => {
+          const max = trackEl.scrollWidth - trackEl.clientWidth;
+          setIndex(max > 0 ? Math.round((trackEl.scrollLeft / max) * (total - 1)) : 0);
+        });
+      };
+      onScroll();
+      trackEl.addEventListener("scroll", onScroll, { passive: true });
+      return () => {
+        cancelAnimationFrame(raf);
+        trackEl.removeEventListener("scroll", onScroll);
+      };
+    });
+
+    document.fonts?.ready.then(() => ScrollTrigger.refresh());
+    return () => mm.revert();
+  }, [total]);
+
+  const goTo = (i: number, instant = false) => {
+    const trackEl = track.current;
+    if (!trackEl) return;
+    const st = trigger.current;
+    if (st) {
+      const y = st.start + (i / (total - 1)) * (st.end - st.start);
+      if (window.__lenis) window.__lenis.scrollTo(y, instant ? { immediate: true } : { duration: 1.2 });
+      else window.scrollTo({ top: y, behavior: instant ? "auto" : "smooth" });
+      return;
+    }
+    const card = trackEl.querySelectorAll<HTMLElement>(".project-card")[i];
+    if (card) trackEl.scrollTo({ left: card.offsetLeft - parseFloat(getComputedStyle(trackEl).paddingLeft), behavior: "smooth" });
+  };
+
+  // keyboard focus inside the pinned track: bring that card into view instead of letting the browser scroll the clipped container
+  const onFocus = (e: React.FocusEvent) => {
+    if (!trigger.current) return;
+    const cards = Array.from(track.current?.querySelectorAll(".project-card") ?? []);
+    const i = cards.findIndex((c) => c.contains(e.target as Node));
+    requestAnimationFrame(() => {
+      if (pin.current) pin.current.scrollLeft = 0;
+    });
+    if (i >= 0) goTo(i, true);
+  };
+
   return (
-    <section id="work" className="relative overflow-hidden py-28 md:py-36" style={{ minHeight: "100svh" }}>
-      <div className="container-x">
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div className="flex flex-col gap-6">
-            <SectionLabel index="04">SELECTED WORK</SectionLabel>
-            <RevealLines
-              lines={["SYSTEMS", "IN PRODUCTION"]}
-              className="font-display text-[56px] font-medium leading-[0.92] tracking-[-0.04em] md:text-[96px]"
-              lineClassName={(i) => (i === 1 ? "text-outline" : "")}
-            />
+    <section ref={root} id="work" aria-label="Selected work" className="relative">
+      <div ref={pin} className="relative overflow-hidden py-20 md:py-28 lg:motion-safe:flex lg:motion-safe:h-svh lg:motion-safe:flex-col lg:motion-safe:justify-center lg:motion-safe:py-0 lg:motion-safe:pt-16">
+        {/* heading above the swipe track */}
+        <div className="container-x lg:motion-safe:hidden">
+          <Heading />
+        </div>
+
+        {/* track */}
+        <div
+          ref={track}
+          onFocusCapture={onFocus}
+          className="relative mt-10 flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto overscroll-x-contain px-5 pb-2 [scrollbar-width:none] md:mt-14 md:gap-5 md:px-10 [&::-webkit-scrollbar]:hidden lg:motion-safe:mt-0 lg:motion-safe:w-max lg:motion-safe:snap-none lg:motion-safe:items-center lg:motion-safe:gap-6 lg:motion-safe:overflow-visible lg:motion-safe:px-0 lg:motion-safe:pb-0 lg:motion-safe:will-change-transform"
+        >
+          {/* intro panel — pinned mode only */}
+          <div className="box-content hidden w-[min(34vw,560px)] shrink-0 flex-col justify-center gap-10 pl-10 xl:pl-[max(64px,calc((100vw-1440px)/2+64px))] lg:motion-safe:flex">
+            <Heading compact />
+            <p className="flex items-center gap-3 font-mono text-[11px] tracking-[0.2em] text-fg-3">
+              SCROLL TO EXPLORE <span aria-hidden="true">→</span>
+            </p>
           </div>
 
-          <div className="flex items-center gap-6">
-            <span className="font-mono text-sm tracking-[0.14em] text-fg-2" aria-live="polite">
-              <span className="text-fg">{pad(active + 1)}</span> / {pad(total)}
-            </span>
-            <div className="flex gap-2">
+          {projects.map((p) => (
+            <Card key={p.slug} project={p} />
+          ))}
+
+          <div className="hidden w-[6vw] shrink-0 lg:motion-safe:block" aria-hidden="true" />
+        </div>
+
+        {/* progress */}
+        <div className="container-x mt-8 flex items-center justify-between gap-6 md:mt-10 lg:motion-safe:mt-6">
+          <span className="shrink-0 font-mono text-sm tracking-[0.14em] text-fg-2" aria-live="polite">
+            <span className="text-fg">{pad(active + 1)}</span> / {pad(total)}
+          </span>
+          <div className="flex flex-1 gap-2 md:max-w-xl" role="tablist" aria-label="Projects">
+            {projects.map((p, i) => (
               <button
+                key={p.slug}
                 type="button"
-                aria-label="Previous project"
-                onClick={() => swiperRef.current?.slidePrev()}
-                disabled={active === 0}
-                className="grid size-12 place-items-center rounded-full border border-line-strong transition-colors hover:bg-white/5 disabled:opacity-30"
+                role="tab"
+                aria-selected={i === active}
+                aria-label={`${p.number} ${p.title}`}
+                onClick={() => goTo(i)}
+                className="group flex flex-1 flex-col py-3"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-                  <path d="M19 12H5M11 6l-6 6 6 6" />
-                </svg>
+                <span className="relative h-px w-full overflow-hidden bg-line-strong">
+                  <motion.span
+                    className="absolute inset-y-0 left-0 w-full origin-left bg-fg"
+                    animate={{ scaleX: i <= active ? 1 : 0 }}
+                    transition={{ duration: 0.8, ease: EXPO }}
+                  />
+                </span>
               </button>
-              <button
-                type="button"
-                aria-label="Next project"
-                onClick={() => swiperRef.current?.slideNext()}
-                disabled={active === total - 1}
-                className="grid size-12 place-items-center rounded-full border border-line-strong transition-colors hover:bg-white/5 disabled:opacity-30"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-                  <path d="M5 12h14M13 6l6 6-6 6" />
-                </svg>
-              </button>
-            </div>
+            ))}
           </div>
+          <span className="hidden shrink-0 font-mono text-[11px] tracking-[0.2em] text-fg-3 md:inline">
+            <span className="lg:motion-safe:hidden">← SWIPE →</span>
+            <span className="hidden lg:motion-safe:inline">SCROLL ↓</span>
+          </span>
         </div>
       </div>
-
-      {/* track: aligned to the container on the left, bleeding off the right edge */}
-      <div
-        className="relative mt-12 pl-5 md:mt-16 md:pl-10 xl:pl-[max(64px,calc((100vw-1440px)/2+64px))]"
-        onPointerMove={onPointerMove}
-        onPointerLeave={() => setCursor("hidden")}
-      >
-        <Swiper
-          modules={[Keyboard, Mousewheel, A11y]}
-          onSwiper={(s) => (swiperRef.current = s)}
-          onSlideChange={(s) => setActive(s.activeIndex)}
-          slidesPerView={1.08}
-          spaceBetween={12}
-          breakpoints={{ 768: { slidesPerView: 1.1, spaceBetween: 20 }, 1024: { slidesPerView: 1.15, spaceBetween: 24 } }}
-          speed={900}
-          grabCursor
-          keyboard={{ enabled: true }}
-          mousewheel={{ forceToAxis: true, releaseOnEdges: true }}
-          a11y={{ prevSlideMessage: "Previous project", nextSlideMessage: "Next project" }}
-          className="pr-5! md:pr-10!"
-        >
-          {projects.map((p, i) => (
-            <SwiperSlide key={p.slug} className="h-auto! lg:h-[min(78svh,760px)]!">
-              <Slide project={p} active={i === active} />
-            </SwiperSlide>
-          ))}
-        </Swiper>
-      </div>
-
-      {/* progress + hint */}
-      <div className="container-x mt-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-1 gap-2 md:max-w-xl" role="tablist" aria-label="Projects">
-          {projects.map((p, i) => (
-            <button
-              key={p.slug}
-              type="button"
-              role="tab"
-              aria-selected={i === active}
-              aria-label={`${p.number} ${p.title}`}
-              onClick={() => swiperRef.current?.slideTo(i)}
-              className="group flex flex-1 flex-col gap-2 py-2 text-left"
-            >
-              <span className="relative h-px w-full overflow-hidden bg-line-strong">
-                <motion.span
-                  className="absolute inset-y-0 left-0 w-full origin-left bg-fg"
-                  animate={{ scaleX: i <= active ? 1 : 0 }}
-                  transition={{ duration: 0.8, ease: EXPO }}
-                />
-              </span>
-              <span className={`font-mono text-[10px] tracking-[0.14em] transition-colors ${i === active ? "text-fg" : "text-fg-3 group-hover:text-fg-2"}`}>
-                {p.number}
-              </span>
-            </button>
-          ))}
-        </div>
-        <span className="font-mono text-[11px] tracking-[0.2em] text-fg-3">← DRAG / SWIPE →</span>
-      </div>
-
-      {/* DRAG disc */}
-      <motion.div
-        aria-hidden="true"
-        className="pointer-events-none fixed left-0 top-0 z-40 hidden lg:block"
-        style={{ x: sx, y: sy }}
-      >
-        <motion.div
-          className="-ml-11 -mt-11 grid size-22 place-items-center rounded-full border border-white/20 bg-white/10 font-mono text-[10px] tracking-[0.18em] text-fg backdrop-blur-md"
-          animate={{ scale: cursor === "drag" ? 1 : cursor === "link" ? 0.35 : 0, opacity: cursor === "hidden" ? 0 : 1 }}
-          transition={{ duration: 0.4, ease: EXPO }}
-        >
-          <span style={{ opacity: cursor === "drag" ? 1 : 0 }}>DRAG</span>
-        </motion.div>
-      </motion.div>
     </section>
   );
 }
